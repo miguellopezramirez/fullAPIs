@@ -1,5 +1,5 @@
 // src/config/dotenvXConfig.js
-require('dotenv').config();
+require('@dotenvx/dotenvx').config();
 
 module.exports = {
     HOST: process.env.HOST || 'NO ENCONTRE VARIABLE DE ENTORNO',
