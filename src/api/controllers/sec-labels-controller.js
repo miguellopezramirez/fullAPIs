@@ -12,7 +12,7 @@ class InvestionsClass extends cds.ApplicationService{
     //4.-iniciiarlizarlo de manera asincrona
     async init (){
 
-        this.on('getall', async (req)=> {
+        this.on('getalllabel', async (req)=> {
             
             //llamada al metodo de servicio y retorna el resultado de la ruta
             console.log("a ver si pasa")

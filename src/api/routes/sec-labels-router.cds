@@ -1,17 +1,17 @@
 //import model
 using {sec as mysec} from '../models/sec-esecurity';
 
-@labels: 'src/api/controllers/sec-labels-controller.js'
+@impl: 'src/api/controllers/sec-labels-controller.js'
 service security @(path:'/api/sec/values') {
     //instance the entity
     entity labels as projection on mysec.labels;
     entity users as projection on mysec.users;
 
     //MARL: Ger Some Prices History
-    //localhost:3333 /api/sec/values/getall
-    @Core.Description:'get-all-prices-history'
-    @path : 'getall'
-    function getall()
+    //localhost:3333 /api/sec/values/getalllabel
+    @Core.Description:'get all labels'
+    @path : 'getalllabel'
+    function getalllabel()
     returns array of labels;
 
 //     @Core.Description: 'add-one-prices-history'
