@@ -33,6 +33,7 @@
     }
   },
   "requires": {
-    "impl": "src/api/controllers/inv-invesions-controller.js"
+    "impl": "src/api/controllers/inv-invesions-controller.js",
+    "labels": "src/api/controllers/inv-priceshistory-controller.js"
   }
 }
