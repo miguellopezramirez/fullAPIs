@@ -18,10 +18,10 @@ service security @(path:'/api/sec/values') {
 //     @path: 'addone'
 //     action addone(prices:priceshistory) returns array of priceshistory;
 
-//     @Core.Description: 'update-one-prices-history'
-//     @path: 'updateone'
-//     action updateone(price:priceshistory) 
-//     returns array of priceshistory;
+    @Core.Description: 'update-one-labels-values'
+    @path: 'update'
+    action update(label:labels, value:values) 
+    returns array of labels;
 
     @Core.Description: 'delete-one-labels-values'
     @path: 'delete'
