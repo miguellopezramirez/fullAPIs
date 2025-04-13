@@ -119,4 +119,55 @@ function updateAuditLog(existingLog = [], currentUser) {
     return updatedLog;
 }
 
-module.exports = { PatchUserOrRole, DeleteUserOrRole };
+
+
+// --- GET ALL ---
+async function GetAllUsers() {
+    try {
+        const users = await ztusers.find({}).lean(); 
+      
+        return users;
+    } catch (error) {
+        console.error("Error en GetAllUsers:", error);
+        throw error;
+    }
+}
+
+async function GetAllRoles() {
+    try {
+        const roles = await ztroles.find({}).lean(); //lean para que parsie en json si no me truena xd
+        return roles;
+    } catch (error) {
+        console.error("Error en GetAllRoles:", error);
+        throw error;
+    }
+}
+// --- GET USER BY ID ---
+async function GetUserById(userId) {
+    try {
+        const user = await ztusers.findOne({ USERID: userId }).lean();
+        if (!user) throw new Error(`Usuario con USERID ${userId} no encontrado`);
+        return user;
+    } catch (error) {
+        console.error("Error en GetUserById:", error);
+        throw error;
+    }
+}
+
+// --- GET ROLE BY ID ---
+async function GetRoleById(roleId) {
+    try {
+        const role = await ztroles.findOne({ ROLEID: roleId }).lean();
+        if (!role) throw new Error(`Rol con ROLEID ${roleId} no encontrado`);
+        return role;
+    } catch (error) {
+        console.error("Error en GetRoleById:", error);
+        throw error;
+    }
+}
+
+module.exports = { PatchUserOrRole, DeleteUserOrRole ,
+    GetAllUsers,
+    GetAllRoles,
+    GetUserById,  // exportamos la nueva función
+    GetRoleById  };
