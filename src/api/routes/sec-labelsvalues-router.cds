@@ -1,12 +1,11 @@
 //import model
 using {sec as mysec} from '../models/sec-esecurity';
 
-@impl: 'src/api/controllers/sec-labels-controller.js'
+@impl: 'src/api/controllers/sec-labelsvalues-controller.js'
 service security @(path:'/api/sec/values') {
     //instance the entity
     entity labels as projection on mysec.labels;
     entity values as projection on mysec.values;
-    entity users as projection on mysec.users;
 
     //MARL: Ger Some Prices History
     //localhost:3333 /api/sec/values/getalllabel
@@ -19,13 +18,13 @@ service security @(path:'/api/sec/values') {
 //     @path: 'addone'
 //     action addone(prices:priceshistory) returns array of priceshistory;
 
-//     @Core.Description: 'update-one-prices-history'
-//     @path: 'updateone'
-//     action updateone(price:priceshistory) 
-//     returns array of priceshistory;
+    @Core.Description: 'update-one-labels-values'
+    @path: 'update'
+    action update(label:labels, value:values) 
+    returns array of labels;
 
-//     @Core.Description: 'delete-one-prices-history'
-//     @path: 'deleteone'
-//     function deleteone() 
-//     returns array of priceshistory;
+    @Core.Description: 'delete-one-labels-values'
+    @path: 'delete'
+    function delete() 
+    returns array of labels;
 };

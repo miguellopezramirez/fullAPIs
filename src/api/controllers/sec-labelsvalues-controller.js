@@ -3,7 +3,7 @@ const cds = require ('@sap/cds');
 
 //2.-importar el servicio
 // aun no esta creado el servicio
-const servicio = require('../services/sec-labels-services')
+const servicio = require('../services/sec-labelsvalues-services')
 //3.- estructura princiapl  de la clas de contorller
 
 
@@ -15,21 +15,20 @@ class InvestionsClass extends cds.ApplicationService{
         this.on('getall', async (req)=> {
             
             //llamada al metodo de servicio y retorna el resultado de la ruta
-            console.log("a ver si pasa")
-           return servicio.GetAllLablesValues(req);
+           return servicio.GetAllLabelsValues(req);
         });
 
         // this.on("addone", async (req)=>{
         //     return servicio.AddOnePricesHistory(req);
         // })
 
-        // this.on("updateone", async (req)=>{
-        //     return servicio.UpdateOnePricesHistory(req);
-        // })
+        this.on("update", async (req)=>{
+            return servicio.UpdateLabelsValues(req);
+        })
 
-        // this.on("deleteone", async (req)=>{
-        //     return servicio.DeleteOnePricesHistory(req);
-        // })
+        this.on("delete", async (req)=>{
+            return servicio.DeleteLabelsValues(req);
+        })
 
 
         return await super.init();
