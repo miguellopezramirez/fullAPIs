@@ -13,14 +13,26 @@ class UsersRolesController extends cds.ApplicationService {
             });
         });
 
-        // PATCH unificado
-        this.on('update', async (req) => {
-            const { type, id, data } = req.data;
-            return await servicio.PatchUserOrRole({ 
+        // PATCH para usuarios
+        this.on('update-user', async (req) => {
+            const userData = req.data.users; // Accede directamente al objeto users
+            return await servicio.PatchUser({ 
                 body: {
-                    type,
-                    id,  // ← Envía solo 'id' y deja que el servicio decida la key
-                    data  // ← Todos los campos de actualización
+                    type: 'user',
+                    id: userData.USERID, // Asume que USERID viene en el payload
+                    data: userData // Todos los campos de actualización
+                }
+            });
+        });
+
+        // PATCH para roles
+        this.on('update-rol', async (req) => {
+            const roleData = req.data.roles; // Accede directamente al objeto roles
+            return await servicio.PatchRole({ 
+                body: {
+                    type: 'role',
+                    id: roleData.ROLEID, // Asume que ROLEID viene en el payload
+                    data: roleData // Todos los campos de actualización
                 }
             });
         });
