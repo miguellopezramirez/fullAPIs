@@ -29,16 +29,17 @@ entity ZTUSERS {
         ROLEID    : String;
         ROLEIDSAP : String;
       };
-      DETAIL_ROW  : {
-        ACTIVED   : Boolean;
-        DELETED   : Boolean;
-        DETAIL_ROW_REG: array of {
-          CURRENT : Boolean;
-          REGDATE : DateTime;
-          REGTIME : Time;
-          REGUSER : String;
+      DETAIL_ROW      : Composition of one {
+        ACTIVED     : Boolean default true;
+        DELETED     : Boolean default false;
+
+        DETAIL_ROW_REG : Composition of many {
+            CURRENT  : Boolean;
+            REGDATE  : Timestamp;
+            REGTIME  : Timestamp;
+            REGUSER  : String;
         };
-      };
+    };
 }
 
 entity ZTROLES {
@@ -49,14 +50,15 @@ entity ZTROLES {
         PROCESSID : String;
         PRIVILEGEID : array of String;
       };
-      DETAIL_ROW  : {
-        ACTIVED   : Boolean;
-        DELETED   : Boolean;
-        DETAIL_ROW_REG: array of {
-          CURRENT : Boolean;
-          REGDATE : DateTime;
-          REGTIME : Time;
-          REGUSER : String;
+      DETAIL_ROW      : Composition of one {
+        ACTIVED     : Boolean default true;
+        DELETED     : Boolean default false;
+
+        DETAIL_ROW_REG : Composition of many {
+            CURRENT  : Boolean;
+            REGDATE  : Timestamp;
+            REGTIME  : Timestamp;
+            REGUSER  : String;
         };
-      };
+    };
 }

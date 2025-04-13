@@ -1,8 +1,8 @@
 const mongoose = require('mongoose');
 
-const ZTROLES = new mongoose.Schema({
-  ROLEID: { type: String, required: true, unique: true },
-  ROLENAME: { type: String, required: true },
+const ztroles = new mongoose.Schema({
+  ROLEID: { type: String, required: true },
+  ROLENAME: { type: String },
   DESCRIPTION: { type: String },
   PRIVILEGES: [{
     PROCESSID: { type: String },
@@ -13,11 +13,15 @@ const ZTROLES = new mongoose.Schema({
     DELETED: { type: Boolean, default: false },
     DETAIL_ROW_REG: [{
       CURRENT: { type: Boolean, default: false },
-      REGDATE: { type: Date, default: Date.now },
-      REGTIME: { type: Date, default: Date.now }, // Date para manejar tiempo
-      REGUSER: { type: String, required: true }
+      REGDATE: { type: Date },
+      REGTIME: { type: Date }, 
+      REGUSER: { type: String }
     }]
   }
-}, { collection: 'ZTROLES' });
+});
 
-module.exports = mongoose.model('ZTROLES', ZTROLES);
+module.exports = mongoose.model(
+    "ZTROLES", 
+    ztroles,
+     "ZTROLES"
+);

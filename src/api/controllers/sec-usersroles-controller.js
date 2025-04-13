@@ -3,15 +3,25 @@ const servicio = require('../services/sec-usersroles-service');
 
 class UsersRolesController extends cds.ApplicationService {
     async init() {
-        
-        // PATCH - Actualización parcial + borrado lógico
-        this.on('patchUserOrRole', async (req) => {
-            return servicio.PatchUserOrRole(req);
+        // DELETE unificado
+        this.on('delete', async (req) => {
+            const { type, id } = req.data;
+            return await servicio.DeleteUserOrRole({ 
+                body: { 
+                    [type === 'user' ? 'USERID' : 'ROLEID']: id 
+                } 
+            });
         });
 
-        // DELETE - Borrado físico
-        this.on('deleteUserOrRole', async (req) => {
-            return servicio.DeleteUserOrRole(req);
+        // PATCH unificado
+        this.on('update', async (req) => {
+            const { type, id, data } = req.data;
+            return await servicio.PatchUserOrRole({ 
+                body: {
+                    [type === 'user' ? 'USERID' : 'ROLEID']: id,
+                    ...data
+                }
+            });
         });
 
         await super.init();

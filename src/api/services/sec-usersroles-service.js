@@ -1,7 +1,6 @@
-const { ZTUSERS } = require('../models/mongodb/ztusers');
-const { ZTROLES } = require('../models/mongodb/ztroles');
-const { ztvalues } = require('../models/mongodb/ztvalues');
-const mongoose = require('mongoose');
+const ztusers = require('../models/mongodb/ztusers')
+const ztroles = require('../models/mongodb/ztroles')
+const ztvalues = require('../models/mongodb/ztvalues')
 
 async function PatchUserOrRole(req) {
     const { USERID, ROLEID, ...updates } = req.body;
@@ -10,11 +9,11 @@ async function PatchUserOrRole(req) {
     try {
         // 1. Determinar entidad (usuario o rol)
         if (USERID) {
-            entity = await ZTUSERS.findOne({ USERID });
+            entity = await ztusers.findOne({ USERID });
             entityType = 'user';
             if (!entity) throw new Error(`Usuario con USERID ${USERID} no encontrado`);
         } else if (ROLEID) {
-            entity = await ZTROLES.findOne({ ROLEID });
+            entity = await ztroles.findOne({ ROLEID });
             entityType = 'role';
             if (!entity) throw new Error(`Rol con ROLEID ${ROLEID} no encontrado`);
         } else {
@@ -39,7 +38,7 @@ async function PatchUserOrRole(req) {
         updates.DETAIL_ROW_REG = updateAuditLog(entity.DETAIL_ROW_REG, req.user?.id || 'system');
 
         // 5. Ejecutar actualización
-        const Model = entityType === 'user' ? ZTUSERS : ZTROLES;
+        const Model = entityType === 'user' ? ztusers : ztroles;
         const filter = entityType === 'user' ? { USERID } : { ROLEID };
         const result = await Model.updateOne(filter, { $set: updates });
 
@@ -57,19 +56,19 @@ async function DeleteUserOrRole(req) {
         // 1. Determinar entidad (usuario o rol)
         if (USERID) {
             // Eliminar usuario
-            const result = await ZTUSERS.deleteOne({ USERID });
+            const result = await ztusers.deleteOne({ USERID });
             if (result.deletedCount === 0) throw new Error(`Usuario con USERID ${USERID} no encontrado`);
             return { success: true, message: `Usuario ${USERID} eliminado físicamente` };
 
         } else if (ROLEID) {
             // Validar que el rol no esté en uso
-            const usersWithRole = await ZTUSERS.countDocuments({ 
+            const usersWithRole = await ztusers.countDocuments({ 
                 "ROLES.ROLEID": ROLEID 
             });
             if (usersWithRole > 0) throw new Error(`No se puede eliminar: Rol ${ROLEID} está asignado a ${usersWithRole} usuario(s)`);
 
             // Eliminar rol
-            const result = await ZTROLES.deleteOne({ ROLEID });
+            const result = await ztroles.deleteOne({ ROLEID });
             if (result.deletedCount === 0) throw new Error(`Rol con ROLEID ${ROLEID} no encontrado`);
             return { success: true, message: `Rol ${ROLEID} eliminado físicamente` };
 
@@ -85,9 +84,9 @@ async function DeleteUserOrRole(req) {
 // --- Funciones de Validación ---
 async function validateRolesExist(roles) {
     const roleIds = roles.map(r => r.ROLEID);
-    const existingRoles = await ZTROLES.countDocuments({ ROLEID: { $in: roleIds } });
+    const existingRoles = await ztroles.countDocuments({ ROLEID: { $in: roleIds } });
     if (existingRoles !== roleIds.length) {
-        throw new Error("Uno o más ROLES no existen en ZTROLES");
+        throw new Error("Uno o más ROLES no existen en ztroles");
     }
 }
 
