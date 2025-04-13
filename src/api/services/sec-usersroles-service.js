@@ -3,48 +3,41 @@ const ztroles = require('../models/mongodb/ztroles')
 const ztvalues = require('../models/mongodb/ztvalues')
 
 async function PatchUserOrRole(req) {
-    const { USERID, ROLEID, ...updates } = req.body;
-    let entity, entityType;
+    const { body } = req;
+    console.log("[DEBUG] Body recibido:", body);
+
+    const { type, id, data: updates = {} } = body;
+    if (!type || !id) throw new Error("Se requiere type e id");
+    if (!['user', 'role'].includes(type)) throw new Error("Tipo inválido");
 
     try {
-        // 1. Determinar entidad (usuario o rol)
-        if (USERID) {
-            entity = await ztusers.findOne({ USERID });
-            entityType = 'user';
-            if (!entity) throw new Error(`Usuario con USERID ${USERID} no encontrado`);
-        } else if (ROLEID) {
-            entity = await ztroles.findOne({ ROLEID });
-            entityType = 'role';
-            if (!entity) throw new Error(`Rol con ROLEID ${ROLEID} no encontrado`);
-        } else {
-            throw new Error("Se requiere USERID o ROLEID");
-        }
+        // 1. Determinar modelo y filtro
+        const Model = type === 'user' ? ztusers : ztroles;
+        const filter = type === 'user' ? { USERID: id } : { ROLEID: id };
 
-        // 2. Validaciones específicas
-        if (entityType === 'user' && updates.ROLES) {
+        // 2. Verificar existencia
+        const entity = await Model.findOne(filter);
+        if (!entity) throw new Error(`${type} con ID ${id} no encontrado`);
+
+        // 3. Validaciones (roles/privilegios)
+        if (type === 'user' && updates.ROLES) {
             await validateRolesExist(updates.ROLES);
-        }
-
-        if (entityType === 'role' && updates.PRIVILEGES) {
+        } else if (type === 'role' && updates.PRIVILEGES) {
             await validatePrivilegesExist(updates.PRIVILEGES);
         }
 
-        // 3. Borrado lógico (si viene en updates)
+        // 4. Preparar updates (borrado lógico + auditoría)
         if (updates.DETAIL_ROW?.DELETED === true) {
             updates.DETAIL_ROW.ACTIVED = false;
         }
-
-        // 4. Actualizar DETAIL_ROW_REG (auditoría)
-        updates.DETAIL_ROW_REG = updateAuditLog(entity.DETAIL_ROW_REG, req.user?.id || 'system');
+        updates.DETAIL_ROW_REG = updateAuditLog(entity.DETAIL_ROW_REG, 'system');
 
         // 5. Ejecutar actualización
-        const Model = entityType === 'user' ? ztusers : ztroles;
-        const filter = entityType === 'user' ? { USERID } : { ROLEID };
         const result = await Model.updateOne(filter, { $set: updates });
-
         return { success: true, modifiedCount: result.modifiedCount };
+
     } catch (error) {
-        console.error("Error en PatchUserOrRole:", error);
+        console.error("[ERROR] PatchUserOrRole:", error.message);
         throw error;
     }
 }

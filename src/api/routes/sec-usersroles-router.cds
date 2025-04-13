@@ -21,8 +21,9 @@ service UsersRolesService @(path:'/api/sec/usersroles') {
     @Core.Description: 'Actualiza usuario o rol'
     @path: 'update'
     action update(
-        type: String enum { user; role }, // 'user' o 'role'
-        id: String,                       // USERID o ROLEID
+        type: String enum { user; role }, 
+        id: String,          
+        data: Users       
     ) returns {
         success: Boolean;
         modifiedCount: Integer;

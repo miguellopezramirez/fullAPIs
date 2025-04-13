@@ -18,8 +18,9 @@ class UsersRolesController extends cds.ApplicationService {
             const { type, id, data } = req.data;
             return await servicio.PatchUserOrRole({ 
                 body: {
-                    [type === 'user' ? 'USERID' : 'ROLEID']: id,
-                    ...data
+                    type,
+                    id,  // ← Envía solo 'id' y deja que el servicio decida la key
+                    data  // ← Todos los campos de actualización
                 }
             });
         });
