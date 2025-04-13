@@ -13,28 +13,30 @@ class UsersRolesController extends cds.ApplicationService {
             });
         });
 
-        // PATCH para usuarios
-        this.on('update-user', async (req) => {
-            const userData = req.data.users; // Accede directamente al objeto users
-            return await servicio.PatchUser({ 
-                body: {
-                    type: 'user',
-                    id: userData.USERID, // Asume que USERID viene en el payload
-                    data: userData // Todos los campos de actualización
-                }
-            });
-        });
-
-        // PATCH para roles
-        this.on('update-rol', async (req) => {
-            const roleData = req.data.roles; // Accede directamente al objeto roles
-            return await servicio.PatchRole({ 
-                body: {
-                    type: 'role',
-                    id: roleData.ROLEID, // Asume que ROLEID viene en el payload
-                    data: roleData // Todos los campos de actualización
-                }
-            });
+        // UPDATE unificado (estilo labels-values)
+        this.on('update', async (req) => {
+            const { type, user, role } = req.data;
+            
+            if (type === 'user') {
+                if (!user?.USERID) throw new Error("USERID es requerido");
+                return await servicio.PatchUser({ 
+                    body: { 
+                        type: 'user',
+                        id: user.USERID,
+                        data: user 
+                    }
+                });
+            } else if (type === 'role') {
+                if (!role?.ROLEID) throw new Error("ROLEID es requerido");
+                return await servicio.PatchRole({ 
+                    body: { 
+                        type: 'role',
+                        id: role.ROLEID,
+                        data: role 
+                    }
+                });
+            }
+            throw new Error("Tipo inválido. Use 'user' o 'role'");
         });
 
         // GET ALL USERS

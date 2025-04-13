@@ -19,19 +19,11 @@ service UsersRolesService @(path:'/api/sec/usersroles') {
 
     // PATCH USERS
     @Core.Description: 'Actualiza usuario'
-    @path: 'update-user'
-    action updateuser(
-        users: Users       
-    ) returns {
-        success: Boolean;
-        modifiedCount: Integer;
-    };
-
-    // PATCH ROLES
-    @Core.Description: 'Actualiza usuario o rol'
-    @path: 'update-rol'
-    action updaterol(
-        roles: Roles       
+    @path: 'update'
+    action update( 
+        type: String enum { user; role },
+        user: Users, 
+        role: Roles,       
     ) returns {
         success: Boolean;
         modifiedCount: Integer;
