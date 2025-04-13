@@ -1,15 +1,15 @@
 const mongoose = require('mongoose');
 
-//Commerce
+// Values
 
-const ztpriceshistory = new mongoose.Schema({
+const ztvalues = new mongoose.Schema({
     COMPANYID: { type: String },
     CEDIID: { type: String },
     LABELID: { type: String, required: true },
-    LABEL: { type: String, required: true },
-    INDEX: { type: String },
-    COLLECTION: { type: String },
-    SECTION: { type: String },
+    VALUEPAID: { type: String }, // valor padre (opcional)
+    VALUEID: { type: String, required: true },
+    VALUE: { type: String, required: true },
+    ALIAS: { type: String },
     SEQUENCE: { type: Number },
     IMAGE: { type: String },
     DESCRIPTION: { type: String },
@@ -26,7 +26,7 @@ const ztpriceshistory = new mongoose.Schema({
 });
 
 module.exports = mongoose.model(
-    "ZTPRICESHISTORY",
-    ztpriceshistory,
-    "ZTPRICESHISTORY"
+    "ZTVALUES",
+    ztvalues,
+    "ZTVALUES"
 );
