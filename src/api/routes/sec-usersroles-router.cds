@@ -1,6 +1,6 @@
 using { sec as myur } from '../models/sec-usersroles';
 
-@impl: 'src/api/controllers/inv-usersroles-controller.js'
+@impl: 'src/api/controllers/sec-usersroles-controller.js'
 service UsersRolesService @(path: '/api/usersroles') {
 
     // Entidades

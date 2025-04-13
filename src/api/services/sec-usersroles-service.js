@@ -1,4 +1,6 @@
-const { ZTUSERS, ZTROLES, ZTVALUES } = require('../models/mongodb');
+const { ZTUSERS } = require('../models/mongodb/ztusers');
+const { ZTROLES } = require('../models/mongodb/ztroles');
+const { ztvalues } = require('../models/mongodb/ztvalues');
 const mongoose = require('mongoose');
 
 async function PatchUserOrRole(req) {
@@ -92,7 +94,7 @@ async function validateRolesExist(roles) {
 async function validatePrivilegesExist(privileges) {
     for (const priv of privileges) {
         // Validar PROCESSID en ZTVALUES
-        const processExists = await ZTVALUES.countDocuments({ 
+        const processExists = await ztvalues.countDocuments({ 
             LABELID: "idProcess", 
             VALUEID: priv.PROCESSID 
         });
@@ -100,7 +102,7 @@ async function validatePrivilegesExist(privileges) {
 
         // Validar cada PRIVILEGEID en ZTVALUES
         for (const privilegeId of priv.PRIVILEGEID) {
-            const privilegeExists = await ZTVALUES.countDocuments({ 
+            const privilegeExists = await ztvalues.countDocuments({ 
                 LABELID: "IdPrivileges", 
                 VALUEID: privilegeId 
             });

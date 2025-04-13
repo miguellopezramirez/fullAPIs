@@ -1,5 +1,5 @@
 const cds = require('@sap/cds');
-const servicio = require('../services/inv-usersroles-service');
+const servicio = require('../services/sec-usersroles-service');
 
 class UsersRolesController extends cds.ApplicationService {
     async init() {
