@@ -61,6 +61,55 @@ async function UpdateLabelsValues(req) {
     }
 }
 
+//POST
+async function PostLabelsValues(req) {
+
+    const type = parseInt(req.data.type);  // Usar req.data para acceder al cuerpo de la solicitud
+
+    if (type === 1) {
+        const labelData = req.data.label;
+        if (!labelData || !labelData.LABELID) {
+            return { message: "Se requiere un objeto 'label' con un LABELID." };
+        }
+
+        const existingLabel = await ztlabels.findOne({ LABELID: labelData.LABELID }).lean();
+        if (existingLabel) {
+            return { message: `Ya existe un label con LABELID: ${labelData.LABELID}` };
+        }
+
+        const newLabel = new ztlabels(labelData);
+        await newLabel.save();
+        return {
+            value: [
+              {
+                message: "Label creado exitosamente",
+                label: newLabel
+              }
+            ]
+          };
+          
+              } 
+    else if (type === 2) {
+        const valueData = req.data.value;
+        if (!valueData || !valueData.VALUEID || !valueData.LABELID) {
+            return { message: "Se requiere un objeto 'value' con VALUEID y LABELID." };
+        }
+
+        const existingValue = await ztvalues.findOne({ VALUEID: valueData.VALUEID }).lean();
+        if (existingValue) {
+            return { message: `Ya existe un value con VALUEID: ${valueData.VALUEID}` };
+        }
+
+        const newValue = new ztvalues(valueData);
+        await newValue.save();
+        return { message: "Value creado exitosamente", newValue };
+    } 
+    else {
+        return { message: "Parámetro 'type' no válido. Usa 1 para labels o 2 para values." };
+    }
+}
+
+
 // Actualización de Labels
 async function patchLabels(req, id, updateData) {
     try {
@@ -270,4 +319,4 @@ async function valideLabelid(valueToDelete, mensaje) {
 }
 
 
-module.exports = { GetAllLabelsValues, DeleteLabelsValues, UpdateLabelsValues }
+module.exports = { GetAllLabelsValues, DeleteLabelsValues, UpdateLabelsValues, PostLabelsValues }

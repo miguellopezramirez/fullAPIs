@@ -18,7 +18,7 @@ service catalogos @(path:'/api/catalogos') {
     // Ruta para crear un nuevo catálogo (POST)
     @Core.Description: 'Create a new label'
     @path: 'create'
-    action createLabel(label: labels) 
+    action createLabel(label: labels, type: Integer) 
     returns array of labels;
 
     // Ruta para agregar un valor a un catálogo

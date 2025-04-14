@@ -30,6 +30,19 @@ class InvestionsClass extends cds.ApplicationService{
             return servicio.DeleteLabelsValues(req);
         })
 
+        this.on("createLabel", async (req) => {
+            try {
+                // Verifica que req.data contenga el objeto que esperas
+                console.log("Datos recibidos: ", req.data);  // Muestra los datos que estás recibiendo en la consola
+       
+                const result = await servicio.PostLabelsValues(req);
+                return result;
+            } catch (error) {
+                console.error("Error al procesar la solicitud:", error);  // Registra el error completo
+                return { message: "Error al procesar la solicitud", error: error.message || error };
+            }
+        });
+       
 
         return await super.init();
     };
