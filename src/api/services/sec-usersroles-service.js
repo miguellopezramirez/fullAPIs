@@ -4,68 +4,142 @@ const ztvalues = require('../models/mongodb/ztvalues')
 
 async function PatchUser(req) {
     const { body } = req;
-    console.log("[DEBUG] Body recibido para usuario:", body);
 
     const { id, data: updates = {} } = body;
     if (!id) throw new Error("Se requiere USERID");
 
     try {
-        // 1. Verificar existencia
+        //Validar que el usuario exista
         const user = await ztusers.findOne({ USERID: id });
-        if (!user) throw new Error(`Usuario con USERID ${id} no encontrado`);
-
-        // 2. Validaciones específicas
+        if (!user || (user.DETAIL_ROW?.DELETED === true)) 
+            throw new Error(`Usuario con USERID ${id} no encontrado`); //Es el mismo mensaje de error si el usuario fue eliminado lógica o físicamente, o si nunca existió. 
+        
+        //Si se modificará un rol, validar que el rol exista
         if (updates.ROLES) {
             await validateRolesExist(updates.ROLES);
         }
 
-        // 3. Preparar updates
-        if (updates.DETAIL_ROW?.DELETED === true) {
-            updates.DETAIL_ROW.ACTIVED = false;
+        //Manejo del borrado lógico 
+        if (Object.keys(updates).every(key => key === 'USERID')) {
+            updates.DETAIL_ROW = {
+                ...user.DETAIL_ROW, 
+                DELETED: true,      
+                ACTIVED: false
+            };
         }
-        updates.DETAIL_ROW_REG = updateAuditLog(user.DETAIL_ROW_REG, 'system');
+        else {
+            updates.DETAIL_ROW = {
+                ...user.DETAIL_ROW, 
+                DELETED: false,
+                ACTIVED: true
+            };
+        }
+        //Agregar registro de DETAIL_ROW
+        updates.DETAIL_ROW.DETAIL_ROW_REG = updateAuditLog(
+            user.DETAIL_ROW?.DETAIL_ROW_REG || [], 
+            req.user?.id || 'aramis'
+        );
 
-        // 4. Ejecutar actualización
+        //Actualizar datos
         const result = await ztusers.updateOne({ USERID: id }, { $set: updates });
         return { success: true, modifiedCount: result.modifiedCount };
 
     } catch (error) {
-        console.error("[ERROR] PatchUser:", error.message);
+        console.error("Error al actualizar el usuario: ", error.message);
         throw error;
     }
 }
 
 async function PatchRole(req) {
     const { body } = req;
-    console.log("[DEBUG] Body recibido para rol:", body);
 
     const { id, data: updates = {} } = body;
     if (!id) throw new Error("Se requiere ROLEID");
 
     try {
-        // 1. Verificar existencia
+        //Verifica que el rol exista
         const role = await ztroles.findOne({ ROLEID: id });
-        if (!role) throw new Error(`Rol con ROLEID ${id} no encontrado`);
+        if (!role || (role.DETAIL_ROW?.DELETED === true))
+            throw new Error(`Rol con ROLEID ${id} no encontrado`);
 
-        // 2. Validaciones específicas
+        //Si se modifican procesos o privilegios validar que existan
         if (updates.PRIVILEGES) {
             await validatePrivilegesExist(updates.PRIVILEGES);
         }
 
-        // 3. Preparar updates
-        if (updates.DETAIL_ROW?.DELETED === true) {
-            updates.DETAIL_ROW.ACTIVED = false;
+        //Manejo del borrado lógico 
+        if (Object.keys(updates).every(key => key === 'ROLEID')) {
+            updates.DETAIL_ROW = {
+                ...role.DETAIL_ROW, 
+                DELETED: true,      
+                ACTIVED: false
+            };
         }
-        updates.DETAIL_ROW_REG = updateAuditLog(role.DETAIL_ROW_REG, 'system');
+        else {
+            updates.DETAIL_ROW = {
+                ...role.DETAIL_ROW, 
+                DELETED: false,
+                ACTIVED: true
+            };
+        }
+        //Agregar registro de DETAIL_ROW
+        updates.DETAIL_ROW.DETAIL_ROW_REG = updateAuditLog(
+            role.DETAIL_ROW?.DETAIL_ROW_REG || [], 
+            req.user?.id || 'aramis'
+        );
 
-        // 4. Ejecutar actualización
+        //Actualizar datos
         const result = await ztroles.updateOne({ ROLEID: id }, { $set: updates });
         return { success: true, modifiedCount: result.modifiedCount };
 
     } catch (error) {
-        console.error("[ERROR] PatchRole:", error.message);
+        console.error("Error al actualizar el rol: ", error.message);
         throw error;
     }
+}
+
+// --- Funciones de Validación ---
+async function validateRolesExist(roles) {
+    const roleIds = roles.map(r => r.ROLEID);
+    const existingRoles = await ztroles.countDocuments({ ROLEID: { $in: roleIds } });
+    if (existingRoles !== roleIds.length) {
+        throw new Error("Uno o más ROLES no existen");
+    }
+}
+
+async function validatePrivilegesExist(privileges) {
+    await Promise.all(privileges.map(async (priv) => {
+        const processIdPart = priv.PROCESSID.split('-')[1];
+        if (!processIdPart) throw new Error(`Formato inválido en PROCESSID: ${priv.PROCESSID}`);
+
+        const [processCheck, ...privilegeChecks] = await Promise.all([
+            ztvalues.countDocuments({ LABELID: "IdProcesses", VALUEID: processIdPart }),
+            ...priv.PRIVILEGEID.map(pid => 
+                ztvalues.countDocuments({ LABELID: "IdPrivileges", VALUEID: pid })
+            )
+        ]);
+
+        if (!processCheck) throw new Error(`PROCESSID '${processIdPart}' no existe`);
+        privilegeChecks.forEach((exists, i) => {
+            if (!exists) throw new Error(`PRIVILEGEID '${priv.PRIVILEGEID[i]}' no existe`);
+        });
+    }));
+}
+
+// --- Auditoría ---
+function updateAuditLog(existingLog = [], currentUser) {
+    // Marcar registros anteriores como no actuales
+    const updatedLog = existingLog.map(entry => ({ ...entry, CURRENT: false }));
+
+    // Añadir nuevo registro
+    updatedLog.push({
+        CURRENT: true,
+        REGDATE: new Date(),
+        REGTIME: new Date(),
+        REGUSER: currentUser
+    });
+
+    return updatedLog;
 }
 
 async function DeleteUserOrRole(req) {
@@ -95,54 +169,9 @@ async function DeleteUserOrRole(req) {
             throw new Error("Se requiere USERID o ROLEID");
         }
     } catch (error) {
-        console.error("Error en DeleteUserOrRole:", error);
+        console.error("Error al eliminar el registro:", error);
         throw error;
     }
-}
-
-// --- Funciones de Validación ---
-async function validateRolesExist(roles) {
-    const roleIds = roles.map(r => r.ROLEID);
-    const existingRoles = await ztroles.countDocuments({ ROLEID: { $in: roleIds } });
-    if (existingRoles !== roleIds.length) {
-        throw new Error("Uno o más ROLES no existen en ztroles");
-    }
-}
-
-async function validatePrivilegesExist(privileges) {
-    for (const priv of privileges) {
-        // Validar PROCESSID en ZTVALUES
-        const processExists = await ztvalues.countDocuments({ 
-            LABELID: "idProcess", 
-            VALUEID: priv.PROCESSID 
-        });
-        if (!processExists) throw new Error(`PROCESSID ${priv.PROCESSID} no existe`);
-
-        // Validar cada PRIVILEGEID en ZTVALUES
-        for (const privilegeId of priv.PRIVILEGEID) {
-            const privilegeExists = await ztvalues.countDocuments({ 
-                LABELID: "IdPrivileges", 
-                VALUEID: privilegeId 
-            });
-            if (!privilegeExists) throw new Error(`PRIVILEGEID ${privilegeId} no existe`);
-        }
-    }
-}
-
-// --- Auditoría ---
-function updateAuditLog(existingLog = [], currentUser) {
-    // Marcar registros anteriores como no actuales
-    const updatedLog = existingLog.map(entry => ({ ...entry, CURRENT: false }));
-
-    // Añadir nuevo registro
-    updatedLog.push({
-        CURRENT: true,
-        REGDATE: new Date(),
-        REGTIME: new Date(),
-        REGUSER: currentUser
-    });
-
-    return updatedLog;
 }
 
 // --- GET ALL ---
