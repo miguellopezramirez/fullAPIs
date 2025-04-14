@@ -181,7 +181,7 @@ async function deleteLabels(req, id) {
         
         await ztlabels.deleteOne({ LABELID: id });
         return { 
-            message: "Label borrado exitosamente",
+            message: "Label borrado fisicamente exitosamente",
             deletedLabel: labelToDelete 
         };
     } catch (error) {
@@ -208,7 +208,7 @@ async function deleteValues(req, id) {
         await ztvalues.deleteOne({ VALUEID: id });
         
         return { 
-            message: "Value borrado exitosamente",
+            message: "Value borrado fisicamente exitosamente",
             deletedValue: valueToDelete 
         };
     } catch (error) {

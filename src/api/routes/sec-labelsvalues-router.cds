@@ -19,12 +19,12 @@ service security @(path:'/api/sec/values') {
 //     action addone(prices:priceshistory) returns array of priceshistory;
 
     @Core.Description: 'update-one-labels-values'
-    @path: 'update'
-    action update(label:labels, value:values) 
+    @path: 'updatevalues'
+    action updatevalues(label:labels, value:values) 
     returns array of labels;
 
     @Core.Description: 'delete-one-labels-values'
-    @path: 'delete'
-    function delete() 
+    @path: 'deletevalues'
+    function deletevalues() 
     returns array of labels;
 };
