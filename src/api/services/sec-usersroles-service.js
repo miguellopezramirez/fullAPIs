@@ -219,6 +219,57 @@ async function GetRoleById(roleId) {
     }
 }
 
+async function CreateUser(req) {
+    const { user } = req.body;
+    if (!user?.USERID) throw new Error("USERID es requerido");
+
+    try {
+        const exists = await ztusers.findOne({ USERID: user.USERID });
+        if (exists) throw new Error(`Ya existe un usuario con USERID ${user.USERID}`);
+
+        if (user.ROLES) {
+            await validateRolesExist(user.ROLES);
+        }
+
+        user.DETAIL_ROW = {
+            ACTIVED: true,
+            DELETED: false,
+            DETAIL_ROW_REG: updateAuditLog([], req.user?.id || 'aramis')
+        };
+
+        await ztusers.create(user);
+
+        return { success: true, USERID: user.USERID };
+    } catch (error) {
+        console.error("Error al crear el usuario:", error.message);
+        throw error;
+    }
+}
+
+async function CreateRole(req) {
+    const { role } = req.body;
+    if (!role?.ROLEID) throw new Error("ROLEID es requerido");
+
+    try {
+        const exists = await ztroles.findOne({ ROLEID: role.ROLEID });
+        if (exists) throw new Error(`Ya existe un rol con ROLEID ${role.ROLEID}`);
+
+
+        role.DETAIL_ROW = {
+            ACTIVED: true,
+            DELETED: false,
+            DETAIL_ROW_REG: updateAuditLog([], req.user?.id || 'aramis')
+        };
+
+        await ztroles.create(role);
+
+        return { success: true, ROLEID: role.ROLEID };
+    } catch (error) {
+        console.error("Error al crear el rol:", error.message);
+        throw error;
+    }
+}
+
 module.exports = {
     PatchUser,
     PatchRole,
@@ -226,5 +277,7 @@ module.exports = {
     GetAllUsers,
     GetAllRoles,
     GetUserById,  // exportamos la nueva función
-    GetRoleById   // exportamos la nueva función
+    GetRoleById,   // exportamos la nueva función
+    CreateUser,
+    CreateRole
 };

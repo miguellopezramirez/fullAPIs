@@ -28,4 +28,17 @@ service UsersRolesService @(path:'/api/sec/usersroles') {
         success: Boolean;
         modifiedCount: Integer;
     };
+
+    // POST USERS / ROLES
+    @Core.Description: 'Crea un nuevo usuario o rol'
+    @path: 'create'
+    action create(
+        type: String enum { user; role },
+        user: Users,
+        role: Roles
+    ) returns {
+        success: Boolean;
+        USERID: String;
+        ROLEID: String;
+    };
 }

@@ -85,6 +85,22 @@ class UsersRolesController extends cds.ApplicationService {
             }
         });
 
+        // POST 
+        this.on('create', async (req) => {
+            const { type, user, role } = req.data;
+
+            if (type === 'user') {
+                if (!user?.USERID) throw new Error("USERID es requerido");
+                return await servicio.CreateUser({ body: { user }, user: req.user });
+            } else if (type === 'role') {
+                if (!role?.ROLEID) throw new Error("ROLEID es requerido");
+                return await servicio.CreateRole({ body: { role }, user: req.user });
+            }
+
+            throw new Error("Tipo inválido. Use 'user' o 'role'");
+        });
+
+
         await super.init();
     }
 }
