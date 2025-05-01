@@ -1,27 +1,19 @@
-//1.-importacion de las librerias
-const cds = require ('@sap/cds');
+const { GetAllPricesHistory, UpdateOnePricesHistory } = require('../services/inv-pricehistory-service');
 
-//2.-importar el servicio
-// aun no esta creado el servicio
+class InvestionsClass extends cds.ApplicationService {
 
-//3.- estructura princiapl  de la clas de contorller
+    async init() {
 
+        this.on('getall', async (req) => {
+            return GetAllPricesHistory(req);
+        });
 
-class InvestionsClass extends cds.ApplicationService{
-
-    //4.-iniciiarlizarlo de manera asincrona
-    async init (){
-
-        this.on('getall', async (req)=> {
-            
-            //llamada al metodo de servicio y retorna el resultado de la ruta
-           return GetAllPricesHistory(req);
+        this.on('updateone', async (req) => {
+            return UpdateOnePricesHistory(req);
         });
 
         return await super.init();
-    };
-
-
+    }
 };
 
 module.exports = InvestionsClass;

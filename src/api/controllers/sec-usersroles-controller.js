@@ -1,0 +1,108 @@
+const cds = require('@sap/cds');
+const servicio = require('../services/sec-usersroles-service');
+
+class UsersRolesController extends cds.ApplicationService {
+    async init() {
+        // DELETE unificado
+        this.on('delete', async (req) => {
+            const { type, id } = req.data;
+            return await servicio.DeleteUserOrRole({ 
+                body: { 
+                    [type === 'user' ? 'USERID' : 'ROLEID']: id 
+                } 
+            });
+        });
+
+        // UPDATE unificado (estilo labels-values)
+        this.on('update', async (req) => {
+            const { type, user, role } = req.data;
+            
+            if (type === 'user') {
+                if (!user?.USERID) throw new Error("USERID es requerido");
+                return await servicio.PatchUser({ 
+                    body: { 
+                        type: 'user',
+                        id: user.USERID,
+                        data: user 
+                    }
+                });
+            } else if (type === 'role') {
+                if (!role?.ROLEID) throw new Error("ROLEID es requerido");
+                return await servicio.PatchRole({ 
+                    body: { 
+                        type: 'role',
+                        id: role.ROLEID,
+                        data: role 
+                    }
+                });
+            }
+            throw new Error("Tipo inválido. Use 'user' o 'role'");
+        });
+
+        // GET ALL USERS
+        this.on('READ', 'Users', async (req) => {
+            try {
+                const users = await servicio.GetAllUsers();
+                return users;
+            } catch (error) {
+                console.error("Error leyendo usuarios:", error);
+                req.error(500, "Error al obtener usuarios");
+            }
+        });
+
+        // GET USER BY ID
+        this.on('READ', 'User', async (req) => {
+            const { id } = req.params;
+            try {
+                const user = await servicio.GetUserById(id); // Llamada al servicio para obtener usuario por ID
+                return user;
+            } catch (error) {
+                console.error("Error obteniendo usuario por ID:", error);
+                req.error(500, "Error al obtener usuario");
+            }
+        });
+
+        // GET ALL ROLES
+        this.on('READ', 'Roles', async (req) => {
+            try {
+                const roles = await servicio.GetAllRoles();
+                return roles;
+            } catch (error) {
+                console.error("Error leyendo roles:", error);
+                req.error(500, "Error al obtener roles");
+            }
+        });
+
+        // GET ROLE BY ID
+        this.on('READ', 'Role', async (req) => {
+            const { id } = req.params;
+            try {
+                const role = await servicio.GetRoleById(id); // Llamada al servicio para obtener rol por ID
+                return role;
+            } catch (error) {
+                console.error("Error obteniendo rol por ID:", error);
+                req.error(500, "Error al obtener rol");
+            }
+        });
+
+        await super.init();
+    
+            // POST 
+            this.on('create', async (req) => {
+                const { type, user, role } = req.data;
+
+                if (type === 'user') {
+                    if (!user?.USERID) throw new Error("USERID es requerido");
+                    return await servicio.CreateUser({ body: { user }, user: req.user });
+                } else if (type === 'role') {
+                    if (!role?.ROLEID) throw new Error("ROLEID es requerido");
+                    return await servicio.CreateRole({ body: { role }, user: req.user });
+                }
+
+                throw new Error("Tipo inválido. Use 'user' o 'role'");
+            });
+
+    }
+}
+
+module.exports = UsersRolesController;

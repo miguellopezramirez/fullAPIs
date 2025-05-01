@@ -9,11 +9,11 @@
     "src"
   ],
   "dependencies": {
-    "@dotenvx/dotenvx": "1.39.0",
-    "@sap/cds": "8",
-    "cors": "2.8.5",
+    "@dotenvx/dotenvx": "^1.39.0",
+    "@sap/cds": "^8.9.0",
+    "cors": "^2.8.5",
     "express": "4",
-    "mongoose": "^8.13.0"
+    "mongoose": "^8.13.1"
   },
   "devDependencies": {
     "@cap-js/cds-types": "0.9.0",
