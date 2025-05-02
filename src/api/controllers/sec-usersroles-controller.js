@@ -39,8 +39,9 @@ class UsersRolesController extends cds.ApplicationService {
             throw new Error("Tipo inválido. Use 'user' o 'role'");
         });
 
+
         // GET ALL USERS
-        this.on('READ', 'Users', async (req) => {
+        this.on('fetchAll', async (req) => {
             try {
                 const users = await servicio.GetAllUsers();
                 return users;
@@ -50,17 +51,18 @@ class UsersRolesController extends cds.ApplicationService {
             }
         });
 
-        // GET USER BY ID
-        this.on('READ', 'User', async (req) => {
-            const { id } = req.params;
-            try {
-                const user = await servicio.GetUserById(id); // Llamada al servicio para obtener usuario por ID
-                return user;
-            } catch (error) {
-                console.error("Error obteniendo usuario por ID:", error);
-                req.error(500, "Error al obtener usuario");
-            }
-        });
+     
+       // GET USER BY ID
+       this.on('READ', 'Users', async (req) => {
+        const { USERID } = req.data;  // Se obtiene el parámetro USERID de la URL
+        try {
+            const user = await servicio.GetUserById(USERID); // Llamada al servicio para obtener usuario por ID
+            return user;
+        } catch (error) {
+            console.error("Error obteniendo usuario por ID:", error);
+            req.error(500, "Error al obtener usuario");
+        }
+    });
 
         // GET ALL ROLES
         this.on('READ', 'Roles', async (req) => {
@@ -75,9 +77,10 @@ class UsersRolesController extends cds.ApplicationService {
 
         // GET ROLE BY ID
         this.on('READ', 'Role', async (req) => {
-            const { id } = req.params;
+            const { ROLEID } = req.data;
+            
             try {
-                const role = await servicio.GetRoleById(id); // Llamada al servicio para obtener rol por ID
+                const role = await servicio.GetRoleById(ROLEID); // Llamada al servicio para obtener rol por ID
                 return role;
             } catch (error) {
                 console.error("Error obteniendo rol por ID:", error);
