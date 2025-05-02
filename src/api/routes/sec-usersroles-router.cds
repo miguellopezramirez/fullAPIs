@@ -5,7 +5,7 @@ service UsersRolesService @(path:'/api/sec/usersroles') {
     // Entidades básicas
     entity Users as projection on myur.ZTUSERS;
     entity Roles as projection on myur.ZTROLES;
-     entity Role as projection on myur.ZTROLES;
+    entity Role as projection on myur.ZTROLES;
 
 
  //------------------------------rutas de Echauri-----------------------------------------

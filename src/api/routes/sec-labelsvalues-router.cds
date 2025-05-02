@@ -11,7 +11,7 @@ service catalogos @(path:'/api/catalogos') {
 
     // Ruta para obtener todos los catálogos
     @Core.Description: 'Get all labels'
-    @path: 'getall'
+    @path: 'getAllLabels'
     function getAllLabels() 
     returns array of labels;
 
