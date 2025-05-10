@@ -1,8 +1,7 @@
 namespace inv;
 
 entity priceshistory{
-    key ID:     Integer;
-        DATE:   DateTime;
+    key DATE:   DateTime;
         OPEN:   Decimal;
         HIGH:   Decimal;
         LOW:    Decimal;
