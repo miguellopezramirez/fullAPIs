@@ -29,27 +29,32 @@ class UsersRolesController extends cds.ApplicationService {
         // UPDATE unificado (estilo labels-values)
         this.on('update', async (req) => {
             const { type, user, role } = req.data;
-            
-            if (type === 'user') {
-                if (!user?.USERID) throw new Error("USERID es requerido");
-                return await servicio.PatchUser({ 
-                    body: { 
-                        type: 'user',
-                        id: user.USERID,
-                        data: user 
-                    }
-                });
-            } else if (type === 'role') {
-                if (!role?.ROLEID) throw new Error("ROLEID es requerido");
-                return await servicio.PatchRole({ 
-                    body: { 
-                        type: 'role',
-                        id: role.ROLEID,
-                        data: role 
-                    }
-                });
+
+            try {
+                if (type === 'user') {
+                    if (!user?.USERID) throw { code: 'USERID_REQUIRED', message: "USERID es requerido" };
+                    return await servicio.PatchUser({
+                        body: {
+                            type: 'user',
+                            id: user.USERID,
+                            data: user
+                        }
+                    });
+                } else if (type === 'role') {
+                    if (!role?.ROLEID) throw { code: 'ROLEID_REQUIRED', message: "ROLEID es requerido" };
+                    return await servicio.PatchRole({
+                        body: {
+                            type: 'role',
+                            id: role.ROLEID,
+                            data: role
+                        }
+                    });
+                }
+                throw { code: 'INVALID_TYPE', message: "Tipo inválido. Use 'user' o 'role'" };
+            } catch (error) {
+                console.error("Error en update:", error);
+                req.error(error.code || 500, error.message || "Error inesperado");
             }
-            throw new Error("Tipo inválido. Use 'user' o 'role'");
         });
 
 
