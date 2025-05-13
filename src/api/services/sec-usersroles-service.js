@@ -110,8 +110,13 @@ async function validateRolesExist(roles) {
 async function validatePrivilegesExist(privileges) {
     await Promise.all(privileges.map(async (priv) => {
         const processIdPart = priv.PROCESSID.split('-')[1];
-        if (!processIdPart) throw new Error(`Formato inválido en PROCESSID: ${priv.PROCESSID}`);
-
+           if (!processIdPart) {
+            throw new Error(JSON.stringify({
+                code: 'INVALID_PROCESSID',
+                message: `Formato inválido en PROCESSID: ${priv.PROCESSID}`
+            }));
+        }
+        
         const [processCheck, ...privilegeChecks] = await Promise.all([
             ztvalues.countDocuments({ LABELID: "IdProcesses", VALUEID: processIdPart }),
             ...priv.PRIVILEGEID.map(pid => 
@@ -248,6 +253,7 @@ async function CreateUser(req) {
 
 async function CreateRole(req) {
     const { role } = req.body;
+    console.log(role);
     if (!role?.ROLEID) throw new Error("ROLEID es requerido");
 
     try {

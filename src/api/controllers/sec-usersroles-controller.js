@@ -4,14 +4,27 @@ const servicio = require('../services/sec-usersroles-service');
 class UsersRolesController extends cds.ApplicationService {
     async init() {
         // DELETE unificado
+      // DELETE unificado
         this.on('delete', async (req) => {
             const { type, id } = req.data;
-            return await servicio.DeleteUserOrRole({ 
-                body: { 
-                    [type === 'user' ? 'USERID' : 'ROLEID']: id 
-                } 
-            });
+            
+            try {
+                // Llamada al servicio DeleteUserOrRole
+                const result = await servicio.DeleteUserOrRole({ 
+                    body: { 
+                        [type === 'user' ? 'USERID' : 'ROLEID']: id 
+                    } 
+                });
+                
+                return result;  // Si la eliminación fue exitosa, retornamos el resultado
+
+            } catch (error) {
+                // Si ocurre un error, capturamos el mensaje y lo enviamos como respuesta al frontend
+                console.error("Error al eliminar:", error);
+                req.error(400, error.message);  // Devolvemos el error con un código 400 y el mensaje
+            }
         });
+
 
         // UPDATE unificado (estilo labels-values)
         this.on('update', async (req) => {
