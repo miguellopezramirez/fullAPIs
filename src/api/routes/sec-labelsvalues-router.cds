@@ -16,26 +16,32 @@ service catalogos @(path:'/api/catalogos') {
     returns array of labels;
 
     // Ruta para crear un nuevo catálogo (POST)
-    @Core.Description: 'Create a new label'
-    @path: 'create'
-    action createLabel(label: labels, type: Integer) 
-    returns array of labels;
+    // @Core.Description: 'Create a new label'
+    // @path: 'createLabel'
+    // action createLabel(label: labels, type: Integer) 
+    // returns array of labels;
 
     // Ruta para agregar un valor a un catálogo
     @Core.Description: 'Add a value to a label'
-    @path: 'addvalue'
-    action addValueToLabel(label: labels, value: values) 
-    returns array of values;
+    @path: 'createLabel'
+    action createLabel(label: labels, value: values, type: Integer) 
+    returns {
+        success: Boolean;
+        message: String;
+    };
 
     // Ruta para actualizar un catálogo y un valor
     @Core.Description: 'Update a label and value'
-    @path: 'update'
+    @path: 'updateLabel'
     action updateLabel(label: labels, value: values)
-    returns array of labels;
+    returns {
+        success: Boolean;
+        message: String;
+    };
 
     // Ruta para eliminar un catálogo o un valor
     @Core.Description: 'Delete a label or value'
-    @path: 'delete'
+    @path: 'deleteLabelOrValue'
     function deleteLabelOrValue() 
     returns array of labels;
 };
