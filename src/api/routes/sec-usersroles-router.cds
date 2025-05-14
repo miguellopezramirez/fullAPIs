@@ -8,18 +8,13 @@ service UsersRolesService @(path:'/api/sec/usersroles') {
     entity Role as projection on myur.ZTROLES;
 
 
- //------------------------------rutas de Echauri-----------------------------------------
      // Ruta para obtener todos los usuarios
     @Core.Description: 'Obtiene todos los usuarios'
     @path: 'fetchAllUsers' // El path para la función
     function fetchAll() 
     returns array of Users;
 
-
    
-   
-//------------------------------Fin rutas de Echauri uwu--------------------------------
-
     // DELETE universal (para usuarios o roles)
     @Core.Description: 'Elimina usuario o rol por ID'
     @path: 'delete'
