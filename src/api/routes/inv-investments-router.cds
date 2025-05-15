@@ -1,6 +1,6 @@
-using {inv as myph} from '../models/inv-inversions';
+using {inv as myph} from '../models/inv-investments';
 
-@impl: 'src/api/controllers/inv-inversions-controller.js'
+@impl: 'src/api/controllers/inv-investments-controller.js'
 service PricesHistoryRoute @(path:'/api/inv') {
     entity priceshistory as projection on myph.priceshistory;
     
