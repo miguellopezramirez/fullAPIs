@@ -22,11 +22,11 @@ class InvestionsClass extends cds.ApplicationService{
         //     return servicio.AddOnePricesHistory(req);
         // })
 
-        this.on("updatevalues", async (req)=>{
+        this.on("updateLabel", async (req)=>{
             return servicio.UpdateLabelsValues(req);
         })
 
-        this.on("deletevalues", async (req)=>{
+        this.on("deleteLabelOrValue", async (req)=>{
             return servicio.DeleteLabelsValues(req);
         })
 

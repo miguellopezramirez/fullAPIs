@@ -79,14 +79,9 @@ async function PostLabelsValues(req) {
 
         const newLabel = new ztlabels(labelData);
         await newLabel.save();
-        return {
-            value: [
-              {
-                message: "Label creado exitosamente",
-                label: newLabel
-              }
-            ]
-          };
+
+        return {success: true, message: "Label creado exitosamente" };
+
           
               } 
     else if (type === 2) {
@@ -102,7 +97,7 @@ async function PostLabelsValues(req) {
 
         const newValue = new ztvalues(valueData);
         await newValue.save();
-        return { message: "Value creado exitosamente", newValue };
+        return {success: true, message: "Value creado exitosamente" };
     } 
     else {
         return { message: "Parámetro 'type' no válido. Usa 1 para labels o 2 para values." };
@@ -148,7 +143,8 @@ async function patchLabels(req, id, updateData) {
 
         return {
             message: "Label actualizado exitosamente",
-            updatedLabel: updatedLabel
+            success: true,
+            // updatedLabel: updatedLabel
         };
     } catch (error) {
         throw error;
@@ -196,7 +192,8 @@ async function patchValues(req, id, updateData) {
         
         return { 
             message: "Value actualizado exitosamente",
-            updatedValue: updatedValue 
+            success: true,
+            // updatedValue: updatedValue 
         };
     } catch (error) {
         throw error;

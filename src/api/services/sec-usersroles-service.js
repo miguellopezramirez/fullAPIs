@@ -54,47 +54,46 @@ async function PatchRole(req) {
     const { body } = req;
 
     const { id, data: updates = {} } = body;
-    if (!id) throw new Error("Se requiere ROLEID");
+    if (!id) throw { code: 'ROLEID_REQUIRED', message: "Se requiere ROLEID" };
 
     try {
-        //Verifica que el rol exista
+        // Verifica que el rol exista
         const role = await ztroles.findOne({ ROLEID: id });
         if (!role || (role.DETAIL_ROW?.DELETED === true))
-            throw new Error(`Rol con ROLEID ${id} no encontrado`);
+            throw { code: 'ROLE_NOT_FOUND', message: `Rol con ROLEID ${id} no encontrado` };
 
-        //Si se modifican procesos o privilegios validar que existan
+        // Si se modifican procesos o privilegios validar que existan
         if (updates.PRIVILEGES) {
             await validatePrivilegesExist(updates.PRIVILEGES);
         }
 
-        //Manejo del borrado lógico 
+        // Manejo del borrado lógico
         if (Object.keys(updates).every(key => key === 'ROLEID')) {
             updates.DETAIL_ROW = {
-                ...role.DETAIL_ROW, 
-                DELETED: true,      
+                ...role.DETAIL_ROW,
+                DELETED: true,
                 ACTIVED: false
             };
-        }
-        else {
+        } else {
             updates.DETAIL_ROW = {
-                ...role.DETAIL_ROW, 
+                ...role.DETAIL_ROW,
                 DELETED: false,
                 ACTIVED: true
             };
         }
-        //Agregar registro de DETAIL_ROW
+        // Agregar registro de DETAIL_ROW
         updates.DETAIL_ROW.DETAIL_ROW_REG = updateAuditLog(
-            role.DETAIL_ROW?.DETAIL_ROW_REG || [], 
+            role.DETAIL_ROW?.DETAIL_ROW_REG || [],
             req.user?.id || 'aramis'
         );
 
-        //Actualizar datos
+        // Actualizar datos
         const result = await ztroles.updateOne({ ROLEID: id }, { $set: updates });
         return { success: true, modifiedCount: result.modifiedCount };
 
     } catch (error) {
-        console.error("Error al actualizar el rol: ", error.message);
-        throw error;
+        console.error("Error al actualizar el rol:", error.message || error);
+        throw error; // Re-lanzar el error para que el frontend lo reciba
     }
 }
 
@@ -110,18 +109,34 @@ async function validateRolesExist(roles) {
 async function validatePrivilegesExist(privileges) {
     await Promise.all(privileges.map(async (priv) => {
         const processIdPart = priv.PROCESSID.split('-')[1];
-        if (!processIdPart) throw new Error(`Formato inválido en PROCESSID: ${priv.PROCESSID}`);
+        if (!processIdPart) {
+            throw {
+                code: 'INVALID_PROCESSID',
+                message: `Formato inválido en PROCESSID: ${priv.PROCESSID}`
+            };
+        }
 
         const [processCheck, ...privilegeChecks] = await Promise.all([
             ztvalues.countDocuments({ LABELID: "IdProcesses", VALUEID: processIdPart }),
-            ...priv.PRIVILEGEID.map(pid => 
+            ...priv.PRIVILEGEID.map(pid =>
                 ztvalues.countDocuments({ LABELID: "IdPrivileges", VALUEID: pid })
             )
         ]);
 
-        if (!processCheck) throw new Error(`PROCESSID '${processIdPart}' no existe`);
+        if (!processCheck) {
+            throw {
+                code: 'PROCESSID_NOT_FOUND',
+                message: `PROCESSID '${processIdPart}' no existe`
+            };
+        }
+
         privilegeChecks.forEach((exists, i) => {
-            if (!exists) throw new Error(`PRIVILEGEID '${priv.PRIVILEGEID[i]}' no existe`);
+            if (!exists) {
+                throw {
+                    code: 'PRIVILEGEID_NOT_FOUND',
+                    message: `PRIVILEGEID '${priv.PRIVILEGEID[i]}' no existe`
+                };
+            }
         });
     }));
 }
@@ -248,6 +263,7 @@ async function CreateUser(req) {
 
 async function CreateRole(req) {
     const { role } = req.body;
+    console.log(role);
     if (!role?.ROLEID) throw new Error("ROLEID es requerido");
 
     try {
