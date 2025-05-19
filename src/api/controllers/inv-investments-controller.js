@@ -1,5 +1,7 @@
 const cds = require ('@sap/cds');
-const servicio = require('../services/inv-investments-service')
+const servicio = require('../services/inv-investments-service');
+const sercivioSimulacion = require('../services/inv-simulation-service');
+
 class InvestionsClass extends cds.ApplicationService{
     async init (){
         this.on('pricehistory', async (req)=> {
@@ -23,6 +25,63 @@ class InvestionsClass extends cds.ApplicationService{
         this.on('strategy', async (req) => {
             return servicio.GetAllInvestmentStrategies(req);
         })
+
+        this.on('deleteSimulation', async (req) => {
+            const idSimulation = req.req.query?.id;
+            const idUser = req.data?.idUser;
+
+            return await sercivioSimulacion.deleteSimulation(idSimulation, idUser);
+        });
+
+        // getSimulation
+        // Se espera que el idUser venga como un parámetro de consulta o sin este par un Get all
+        this.on ('getSimulation', async (req) => {
+            return sercivioSimulacion.getAllSimulaciones(req);
+        });
+
+        //updateSimulation
+        this.on('updatesimulation', async (req) => {
+            const { id, simulationName } = req.data;
+        
+            if (!id || !simulationName) {
+                req.error(400, 'Faltan parámetros: id y simulationName son requeridos.');
+                return;
+            }
+        
+            try {
+                const updated = await sercivioSimulacion.updateSimulationName(id, simulationName);
+                return updated;
+            } catch (err) {
+                console.error("Error en updatesimulation:", err.message);
+                req.error(500, err.message);
+            }
+        });
+
+        this.on('symbols', async (req) => {
+            try {
+                const symbols = await servicio.GetAllSymbols();
+                return symbols; 
+            } catch (error) {
+                throw new Error(`Error al traer los símbolos: ${error.message}`);
+            }
+        });
+
+        this.on('company', async (req) => {
+            return await servicio.GetAllCompanies(req);
+        });
+
+        this.on('calculateSMA', async (req) => {
+            const { symbol, startDate, endDate, specs } = req.data;
+          
+            const resultado = await servicio.calcularSoloSMA({
+              symbol,
+              startDate,
+              endDate,
+              specs
+            });
+          
+            return resultado;
+          });
 
         return await super.init();
     };
