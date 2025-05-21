@@ -7,8 +7,7 @@ service UsersRolesService @(path:'/api/sec/usersroles') {
     entity Roles as projection on myur.ZTROLES;
     entity Role as projection on myur.ZTROLES;
 
-
-     // Ruta para obtener todos los usuarios
+    // Ruta para obtener todos los usuarios
     @Core.Description: 'Obtiene todos los usuarios'
     @path: 'fetchAllUsers' // El path para la función
     function fetchAll() 

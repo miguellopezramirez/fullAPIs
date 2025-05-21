@@ -38,6 +38,30 @@ entity simulations {
             reasoning : String;
         };
 
+        transactions    : Composition of many {  
+            date        : Timestamp;
+            type        : String;
+            price       : Decimal(15,2);
+            reasoning   : String;
+            shares      : Decimal(15,6);  
+            proceeds    : Decimal(15,2);  
+            stopLoss    : Decimal(15,2);  
+            takeProfit  : Decimal(15,2);  
+            isStopLoss  : Boolean;        
+            isFinal     : Boolean;        
+        };
+
+        chart_data      : Composition of many { 
+            date        : Timestamp;
+            open        : Decimal(15,2);
+            high        : Decimal(15,2);
+            low         : Decimal(15,2);
+            close       : Decimal(15,2);
+            volume      : Integer;
+            short_ma    : Decimal(15,2);
+            long_ma     : Decimal(15,2);
+        };
+
         DETAIL_ROW       : Composition of one {
             ACTIVED        : Boolean default true;
             DELETED        : Boolean default false;

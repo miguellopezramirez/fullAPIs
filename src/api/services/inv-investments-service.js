@@ -2,6 +2,7 @@ const axios = require('axios');
 require('dotenv').config(); 
 const ztvalues = require('../models/mongodb/ztvalues');
 const Simulation = require('../models/mongodb/ztsimulation');
+const ztusers = require('../models/mongodb/ztusers');
 
 async function GetAllPricesHistory(req) {
   try {
@@ -273,6 +274,16 @@ async function SimulateMACrossover(params) {
         const profit = currentAmount - amount;
         const percentageReturn = (profit / amount) * 100;
 
+        try {
+            await ztusers.updateOne(
+                { USERID: userId }, // Filtro por ID
+                { $set: { CAPITAL: currentAmount } } 
+            );
+            console.log("Capital actualizado correctamente");
+        } catch (error) {
+            console.error("Error al actualizar el capital:", error.message);
+        }
+
         const simulationData = {
             idSimulation: `${symbol}_${new Date().toISOString().replace(/[:.]/g, '-').replace('T', '_')}`,
             idUser: userId,
@@ -285,7 +296,7 @@ async function SimulateMACrossover(params) {
             shares: shares,
             signals: signals,
             specs: params?.specs || `SHORT:${shortMa}&LONG:${longMa}`,
-            result: currentAmount,
+            result: profit,
             percentageReturn: percentageReturn,
             chart_data: priceData,
             transactions: transactions,

@@ -31,7 +31,7 @@ service PricesHistoryRoute @(path:'/api/inv') {
     @Core.Description:'get-all-simulations'
     @path : 'getSimulation'	
     action getSimulation(idUser: String, id: String)
-    returns array of simulations;
+    returns array of {};
 
     @Core.Description:'delete simulation by id and user'
     @path : 'deleteSimulation'

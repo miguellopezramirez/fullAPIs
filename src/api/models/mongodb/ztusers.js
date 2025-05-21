@@ -13,7 +13,7 @@ const ztusers = new mongoose.Schema({
   COMPANYALIAS: { type: String },
   CEDIID: { type: String },
   EMPLOYEEID: { type: String },
-  EMAIL: { type: String }, // Validación básica de email
+  EMAIL: { type: String },
   PHONENUMBER: { type: String },
   EXTENSION: { type: String },
   DEPARTMENT: { type: String },
@@ -25,6 +25,7 @@ const ztusers = new mongoose.Schema({
   STATE: { type: String },
   COUNTRY: { type: String },
   AVATAR: { type: String },
+  CAPITAL: { type: Number },
   ROLES: [{
     ROLEID: { type: String },
     ROLEIDSAP: { type: String }
@@ -44,4 +45,5 @@ const ztusers = new mongoose.Schema({
 module.exports = mongoose.model(
   "ZTUSERS",
    ztusers,
-    "ZTUSERS");
+  "ZTUSERS"
+);

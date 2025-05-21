@@ -11,12 +11,12 @@ const ztsimulation = require('../models/mongodb/ztsimulation');
         // Caso 1: Búsqueda por ID específico
         if (idSimulation != null) {
             simulation = await ztsimulation.findOne({idSimulation}).lean();
-            console.log("idSimulation", idSimulation);
+            //console.log("idSimulation", idSimulation);
         }
         // Caso 2: Obtener todos los registros (con paginación)
         else {
            simulation = await ztsimulation.find({idUser}).lean();
-           console.log("otro", idUser);
+           //console.log("otro", idUser);
         }
 
         return (simulation);

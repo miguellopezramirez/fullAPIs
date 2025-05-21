@@ -20,6 +20,30 @@ const SignalSchema = new mongoose.Schema({
   reasoning: { type: String } // Puede ser opcional si aún no se define siempre
 }, { _id: false });
 
+const TransactionSchema = new mongoose.Schema({
+  date: { type: Date, required: true },
+  type: { type: String, required: true, enum: ['buy', 'sell'] },
+  price: { type: Number, required: true },
+  reasoning: { type: String, required: true },
+  shares: { type: Number }, // Opcional (compra)
+  proceeds: { type: Number }, // Opcional (venta)
+  stopLoss: { type: Number }, // Opcional
+  takeProfit: { type: Number }, // Opcional
+  isStopLoss: { type: Boolean }, // Opcional
+  isFinal: { type: Boolean } // Opcional
+}, { _id: false });
+
+const ChartDataSchema = new mongoose.Schema({
+  date: { type: Date, required: true },
+  open: { type: Number, required: true },
+  high: { type: Number, required: true },
+  low: { type: Number, required: true },
+  close: { type: Number, required: true },
+  volume: { type: Number, required: true },
+  short_ma: { type: Number, required: true },
+  long_ma: { type: Number, required: true }
+}, { _id: false });
+
 const SimulationSchema = new mongoose.Schema({
   idSimulation: { type: String, required: true, unique: true },
   idUser: { type: String, required: true },
@@ -30,6 +54,8 @@ const SimulationSchema = new mongoose.Schema({
   endDate: { type: Date, required: true },
   amount: { type: Number, required: true }, // USD
   signals: { type: [SignalSchema], default: [] },
+  transactions: { type: [TransactionSchema], default: [] },
+  chart_data: { type: [ChartDataSchema], default: [] }, 
   specs: { type: String },
   result: { type: Number },
   percentageReturn: { type: Number },
