@@ -287,7 +287,7 @@ async function SimulateMACrossover(params) {
         const simulationData = {
             idSimulation: `${symbol}_${new Date().toISOString().replace(/[:.]/g, '-').replace('T', '_')}`,
             idUser: userId,
-            idStrategy: 'CM',
+            idStrategy: 'IdCM',
             simulationName: `MA Crossover ${shortMa}/${longMa}`,
             symbol,
             startDate: startDate || new Date(priceData[0].date),
