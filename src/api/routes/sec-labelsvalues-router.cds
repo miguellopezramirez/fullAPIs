@@ -26,7 +26,7 @@ service catalogos @(path:'/api/catalogos') {
     // Ruta para agregar un valor a un catálogo
     @Core.Description: 'd aAd value to a label'
     @path: 'createLabel'
-    action createLabel(label: label, value: value_) 
+    action createLabel(label: labels, value: values) 
     returns {
         success: Boolean;
         message: String;
@@ -47,4 +47,10 @@ service catalogos @(path:'/api/catalogos') {
     @path: 'deleteLabelOrValue'
     function deleteLabelOrValue() 
     returns array of labels;
+
+    // Ruta para eliminar un catálogo o un valor
+    @Core.Description: 'Delete a label or value'
+    @path: 'logicalLabelValue'
+    function logicalLabelValue() 
+    returns {};
 };

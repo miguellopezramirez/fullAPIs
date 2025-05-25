@@ -125,7 +125,7 @@ async function UpdateLabelsValues(req) {
 async function PostLabelsValues(req) {
     try {
         const type = parseInt(req.req.query?.type);
-
+        console.log(req.data);
         if (type === 1) {
             const labelItem = req.data.label;
             if (!labelItem) {
@@ -133,10 +133,10 @@ async function PostLabelsValues(req) {
             }
 
             // Validación del label
-            if (!labelItem.LABELID || !labelItem.REGUSER) {
+            if (!labelItem.LABELID) {
                 throw { 
                     code: 400, 
-                    message: "Los campos LABELID y REGUSER son obligatorios para un label" 
+                    message: "Los campos LABELID son obligatorios para un label" 
                 };
             }
 
@@ -149,37 +149,14 @@ async function PostLabelsValues(req) {
                 };
             }
 
-            // Crear el nuevo label
-            const newLabel = {
-                LABELID: labelItem.LABELID,
-                COMPANYID: labelItem.COMPANYID,
-                CEDIID: labelItem.CEDIID,
-                LABEL: labelItem.LABEL,
-                INDEX: labelItem.INDEX,
-                COLLECTION: labelItem.COLLECTION,
-                SECTION: labelItem.SECTION,
-                SEQUENCE: labelItem.SEQUENCE,
-                IMAGE: labelItem.IMAGE,
-                DESCRIPTION: labelItem.DESCRIPTION,
-                DETAIL_ROW: {
-                    ACTIVED: labelItem.ACTIVED !== undefined ? labelItem.ACTIVED : true,
-                    DELETED: false,
-                    DETAIL_ROW_REG: [{
-                        CURRENT: true,
-                        REGDATE: new Date(),
-                        REGTIME: new Date(),
-                        REGUSER: labelItem.REGUSER
-                    }]
-                }
-            };
 
             // Guardar el label
-            const savedLabel = await ztlabels.create(newLabel);
+            const savedLabel = await ztlabels.create(labelItem);
 
             return {
                 message: "Label insertado correctamente",
                 success: true,
-                label: newLabel
+                label: labelItem
             };
 
         } else if (type === 2) {
@@ -189,10 +166,10 @@ async function PostLabelsValues(req) {
             }
 
             // Validación del value
-            if (!valueItem.VALUEID || !valueItem.LABELID || !valueItem.REGUSER) {
+            if (!valueItem.VALUEID || !valueItem.LABELID ) {
                 throw { 
                     code: 400, 
-                    message: "Los campos VALUEID, LABELID y REGUSER son obligatorios para un value" 
+                    message: "Los campos VALUEID y LABELID son obligatorios para un value" 
                 };
             }
 
@@ -215,36 +192,14 @@ async function PostLabelsValues(req) {
             }
 
             // Crear el nuevo value
-            const newValue = {
-                VALUEID: valueItem.VALUEID,
-                COMPANYID: valueItem.COMPANYID,
-                CEDIID: valueItem.CEDIID,
-                LABELID: valueItem.LABELID,
-                VALUEPAID: valueItem.VALUEPAID,
-                VALUE: valueItem.VALUE,
-                ALIAS: valueItem.ALIAS,
-                SEQUENCE: valueItem.SEQUENCE,
-                IMAGE: valueItem.IMAGE,
-                DESCRIPTION: valueItem.DESCRIPTION,
-                DETAIL_ROW: {
-                    ACTIVED: valueItem.ACTIVED !== undefined ? valueItem.ACTIVED : true,
-                    DELETED: false,
-                    DETAIL_ROW_REG: [{
-                        CURRENT: true,
-                        REGDATE: new Date(),
-                        REGTIME: new Date(),
-                        REGUSER: valueItem.REGUSER
-                    }]
-                }
-            };
 
             // Guardar el value
-            const savedValue = await ztvalues.create(newValue).lean();
+            const savedValue = await ztvalues.create(valueItem);
 
             return {
                 message: "Value insertado correctamente",
                 success: true,
-                value: newValue
+                value: valueItem
             };
 
         } else {
@@ -363,66 +318,145 @@ async function patchValues(req, id, updateData) {
         throw error;
     }
 }
-
 // Delete de labels y values
 async function DeleteLabelsValues(req) {
-    const type = parseInt(req.req.query?.type); 
-    const id = req.req.query?.id;
-
-    if (!id) {
-        return { message: "Se requiere el parámetro 'id' para borrar." };
-    }
-
-    if (type == 1) {
-        return deleteLabels(req, id);
-    } else if (type == 2) {
-        return deleteValues(req, id);
-    } else {
-        return { message: "Parámetro 'type' no válido. Usa 1 para labels o 2 para values." };
-    }
-}
-// Borrado de Labels
-async function deleteLabels(req, id) {
     try {
-        const labelToDelete = await ztlabels.findOne({ LABELID: id }).lean();
-        if (!labelToDelete) {
-            return { message: `No se encontró label con idlabel: ${id}` };
+        const type = parseInt(req.req.query?.type);
+        const id = req.req.query?.id;
+        const mode = req.req.query?.mode?.toLowerCase(); // 'logical' o 'physical'
+        const reguser = req.req.query?.reguser;
+
+        if (!id) {
+            throw { code: 400, message: "Se requiere el parámetro 'id' para borrar." };
         }
-        
-        await ztlabels.deleteOne({ LABELID: id });
-        return { 
-            message: "Label borrado fisicamente exitosamente",
-            deletedLabel: labelToDelete 
-        };
+
+        if (!['logical', 'physical'].includes(mode)) {
+            throw { code: 400, message: "Parámetro 'mode' no válido. Usa 'logical' o 'physical'." };
+        }
+
+        if (!reguser && mode === 'logical') {
+            throw { code: 400, message: "Para el borrado lógico se requiere el parámetro 'reguser'." };
+        }
+
+        if (type === 1) {
+            return await deleteLabel(id, mode, reguser);
+        } else if (type === 2) {
+            return await deleteValue(id, mode, reguser);
+        } else {
+            throw { code: 400, message: "Parámetro 'type' no válido. Usa 1 para labels o 2 para values." };
+        }
+
     } catch (error) {
         throw error;
     }
 }
-
-//Borrado de Values
-async function deleteValues(req, id) {
+// 🔴 Borrado de Labels
+async function deleteLabel(id, mode, reguser) {
     try {
-        // 1. Encontrar el value que se quiere borrar
-        const valueToDelete = await ztvalues.findOne({ VALUEID: id }).lean();
-        if (!valueToDelete) {
-            return { message: `No se encontró value con VALUEID: ${id}` };
+        const label = await ztlabels.findOne({ LABELID: id }).lean();
+        if (!label) {
+            throw { code: 404, message: `No se encontró label con LABELID: ${id}` };
         }
 
-        // 2. Validar que no tenga valores dependientes
-        const valor = await valideLabelid(valueToDelete, "borrar");
-        if (valor !== "") { // o simplemente if (valor != null)
-            return valor;
+        if (mode === 'physical') {
+            await ztlabels.deleteOne({ LABELID: id });
+            return {
+                code: 200,
+                message: "Label borrado físicamente exitosamente",
+                deletedLabel: label
+            };
         }
 
-        // 3. Si no tiene hijos, proceder con el borrado
-        await ztvalues.deleteOne({ VALUEID: id });
-        
-        return { 
-            message: "Value borrado fisicamente exitosamente",
-            deletedValue: valueToDelete 
+        // Borrado lógico
+        const newRegistry = {
+            CURRENT: true,
+            REGDATE: new Date(),
+            REGTIME: new Date(),
+            REGUSER: reguser
         };
+
+        const updateObject = {
+            DETAIL_ROW: {
+                ACTIVED: false,
+                DELETED: true,
+                DETAIL_ROW_REG: [
+                    ...(label.DETAIL_ROW?.DETAIL_ROW_REG
+                        ?.filter(reg => typeof reg === 'object' && reg !== null)
+                        ?.map(reg => ({ ...reg, CURRENT: false })) || []),
+                    newRegistry
+                ]
+            }
+        };
+
+        const updatedLabel = await ztlabels.findOneAndUpdate(
+            { LABELID: id },
+            { $set: updateObject },
+            { new: true, lean: true }
+        );
+
+        return {
+            code: 200,
+            message: "Label borrado lógicamente exitosamente",
+            updatedLabel
+        };
+
     } catch (error) {
-        throw error;
+        throw { code: 500, message: `Error al borrar label: ${error.message}` };
+    }
+}
+
+// 🔵 Borrado de Values
+async function deleteValue(id, mode, reguser) {
+    try {
+        const value = await ztvalues.findOne({ VALUEID: id }).lean();
+        if (!value) {
+            throw { code: 404, message: `No se encontró value con VALUEID: ${id}` };
+        }
+
+        if (mode === 'physical') {
+            await ztvalues.deleteOne({ VALUEID: id });
+            return {
+                code: 200,
+                message: "Value borrado físicamente exitosamente",
+                deletedValue: value
+            };
+        }
+
+        // Borrado lógico
+        const newRegistry = {
+            CURRENT: true,
+            REGDATE: new Date(),
+            REGTIME: new Date(),
+            REGUSER: reguser
+        };
+
+        const updateObject = {
+            DETAIL_ROW: {
+                ACTIVED: false,
+                DELETED: true,
+                DETAIL_ROW_REG: [
+                    ...(value.DETAIL_ROW?.DETAIL_ROW_REG
+                        ?.filter(reg => typeof reg === 'object' && reg !== null)
+                        ?.map(reg => ({ ...reg, CURRENT: false })) || []),
+                    newRegistry
+                ]
+            }
+        };
+
+        const updatedValue = await ztvalues.findOneAndUpdate(
+            { VALUEID: id },
+            { $set: updateObject },
+            { new: true, lean: true }
+        );
+
+        return {
+            code: 200,
+            message: "Value borrado lógicamente exitosamente",
+            updatedValue
+        };
+
+    } catch (error) {
+        throw error ;
     }
 }
 
@@ -479,5 +513,75 @@ async function valideLabelid(valueToDelete, mensaje) {
     return "";
 }
 
+async function logicalLabelValue(req) {
+    const { status, id, type } = req.req.query;
+    
+    try {
+        // Validate input parameters
+        if (!status || !id || !type) {
+            throw { code: 400, success: false, message: 'Missing required parameters: status, id, or type' };
+        }
 
-module.exports = { GetAllLabelsValues, DeleteLabelsValues, UpdateLabelsValues, PostLabelsValues }
+        const isActivated = status === 'activate';
+        const updateData = {
+            'DETAIL_ROW.ACTIVED': isActivated,
+            $push: { 
+                'DETAIL_ROW.DETAIL_ROW_REG': {
+                    CURRENT: true,
+                    REGDATE: new Date(),
+                    REGTIME: new Date(),
+                    REGUSER: 'system'
+                } 
+            }
+        };
+
+        if (type === '1') {
+            // First, update all CURRENT fields to false
+            await ztlabels.updateOne(
+                { LABELID: id },
+                { $set: { 'DETAIL_ROW.DETAIL_ROW_REG.$[].CURRENT': false } }
+            );
+            
+            // Then perform the main update
+            const result = await ztlabels.findOneAndUpdate(
+                { LABELID: id },
+                updateData,
+                { new: true }
+            );
+
+            if (!result) {
+                throw { code: 400, success: false, message: 'Label not found' };
+            }
+
+            return { code: 200, success: true, message: `Label ${status}d successfully` };
+        } else {
+            // First, update all CURRENT fields to false
+            await ztvalues.updateOne(
+                { VALUEID: id },
+                { $set: { 'DETAIL_ROW.DETAIL_ROW_REG.$[].CURRENT': false } }
+            );
+            
+            // Then perform the main update
+            const result = await ztvalues.findOneAndUpdate(
+                { VALUEID: id },
+                updateData,
+                { new: true }
+            );
+
+            if (!result) {
+                throw { code: 400, success: false, message: 'Value not found' };
+            }
+
+            return { code: 200, success: true, message: `Value ${status}d successfully` };
+        }
+    } catch (error) {
+        console.error('Error in logicalLabelValue:', error);
+        throw { 
+            code: error.code || 500, 
+            success: false, 
+            message: error.message || 'Internal server error' 
+        };
+    }
+}
+
+module.exports = { GetAllLabelsValues, DeleteLabelsValues, UpdateLabelsValues, PostLabelsValues, logicalLabelValue }

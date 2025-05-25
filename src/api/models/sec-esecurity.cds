@@ -46,8 +46,8 @@ entity label {
 
 entity values {
     key VALUEID     : String;
-    COMPANYID       : String;
-    CEDIID          : String;
+    COMPANYID       : Integer;
+    CEDIID          : Integer;
     LABELID         : String;
     VALUEPAID       : String; // Valor padre (si es jerárquico)
     VALUE           : String;
