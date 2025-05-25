@@ -16,22 +16,22 @@ service UsersRolesService @(path:'/api/sec/usersroles') {
     returns array of Roles;
 
     // GET ALL ROLES
-    // http://localhost:4004/api/sec/usersroles/rolesCRUD?procedure=get&type=all
+    // http://localhost:3033/api/sec/usersroles/rolesCRUD?procedure=get&type=all
 
     // GET ALL ROLES WITH USERS
-    // http://localhost:4004/api/sec/usersroles/rolesCRUD?procedure=get&type=users
+    // http://localhost:3033/api/sec/usersroles/rolesCRUD?procedure=get&type=users
 
     // POST ROLE
-    // http://localhost:4004/api/sec/usersroles/rolesCRUD?procedure=post
+    // http://localhost:3033/api/sec/usersroles/rolesCRUD?procedure=post
 
     // DELETE LOGIC
-    // http://localhost:4004/api/sec/usersroles/rolesCRUD?procedure=delete&type=logic&roleid=IdSecurityPrUEBA3
+    // http://localhost:3033/api/sec/usersroles/rolesCRUD?procedure=delete&type=logic&roleid=IdSecurityPrUEBA3
 
     // BORRADO FISICO
-    // http://localhost:4004/api/sec/usersroles/rolesCRUD?procedure=delete&type=hard&roleid=IdSecurityPrUEBA3
+    // http://localhost:3033/api/sec/usersroles/rolesCRUD?procedure=delete&type=hard&roleid=IdSecurityPrUEBA3
 
     // ACTUALIZAR
-    // http://localhost:4004/api/sec/usersroles/rolesCRUD?procedure=put&roleid=IdSecurityPrUEBA3
+    // http://localhost:3033/api/sec/usersroles/rolesCRUD?procedure=put&roleid=IdSecurityPrUEBA3
 
 
 
