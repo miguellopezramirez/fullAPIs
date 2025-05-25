@@ -43,56 +43,26 @@ service UsersRolesService @(path:'/api/sec/usersroles') {
 
     //Y se evita tener todo lo de abajo, la logica ya la llevara el servicio
 
-    // Ruta para obtener todos los usuarios
-    @Core.Description: 'Obtiene todos los usuarios'
-    @path: 'fetchAllUsers'
-    function fetchAll()
+    @Core.Description: 'CRUD de Usuarios'
+    @path            : 'usersCRUD'
+    action usersCRUD()
     returns array of Users;
 
 
-    // Ruta para obtener un usuario por ID (aunque sea opcional)
-    @Core.Description: 'Obtiene un usuario por ID'
-    @path: 'getUserById'
-    function getUserById(USERID: String)
-    returns Users;
+// todo con post viva sap cds 
+// GET ALL USERS:
+// GET /api/sec/usersroles/usersCRUD?procedure=get&type=all
+// GET ONE USER:
+// GET /api/sec/usersroles/usersCRUD?procedure=get&type=one&userid=IdUserX
+// POST USER:
+// POST /api/sec/usersroles/usersCRUD?procedure=post
+// PUT USER:
+// PUT /api/sec/usersroles/usersCRUD?procedure=put&userid=IdUserX
+// DELETE LÓGICO:
+// DELETE /api/sec/usersroles/usersCRUD?procedure=delete&type=logic&userid=IdUserX
+// DELETE FÍSICO:
+// DELETE /api/sec/usersroles/usersCRUD?procedure=delete&type=hard&userid=IdUserX
 
-
-    // DELETE universal (usuario o rol)
-    @Core.Description: 'Elimina usuario o Rol por ID'
-    @Path: 'delete'
-    action delete(
-        type: String enum { user; role },
-        id: String,
-        mode: String enum { logical; physical } // default lógico
-    ) returns {
-        success: Boolean;
-        message: String;
-    };
-
-    // PATCH universal
-    @Core.Description: 'Actualiza usuario o rol'
-    @path: 'update'
-    action update( 
-        type: String enum { user; role },
-        user: Users, 
-        role: Roles
-    ) returns {
-        success: Boolean;
-        modifiedCount: Integer;
-    };
-
-    // POST universal
-    @Core.Description: 'Crea un nuevo usuario o rol'
-    @path: 'create'
-    action create(
-        type: String enum { user; role },
-        user: Users,
-        role: Roles
-    ) returns {
-        success: Boolean;
-        USERID: String;
-        ROLEID: String;
-    };
 }
 
 

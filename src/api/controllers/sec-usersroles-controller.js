@@ -1,6 +1,6 @@
 const cds = require('@sap/cds');
 
-const { RolesCRUD } = require('../services/sec-usersroles-service');
+const { RolesCRUD, UsersCRUD } = require('../services/sec-usersroles-service');
 
 
 class SecurityClass extends cds.ApplicationService {
@@ -16,5 +16,8 @@ class SecurityClass extends cds.ApplicationService {
     });
 
   };
+
+
+  
 };
 module.exports = SecurityClass;
