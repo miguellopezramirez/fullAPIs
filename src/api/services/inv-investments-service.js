@@ -106,7 +106,7 @@ function calculateMovingAverageData(fullHistory, startDate, endDate, shortMa, lo
                 takeProfit = entryPrice + (2 * (entryPrice - stopLoss));
                 
                 signals.push({
-                    date: current.price_history.date,
+                    date: current.price_history.date.toISOString().split('T')[0],
                     type: 'buy',
                     price: entryPrice,
                     reasoning: `Golden Cross: ${shortMa}MA crossed above ${longMa}MA`,
@@ -124,7 +124,7 @@ function calculateMovingAverageData(fullHistory, startDate, endDate, shortMa, lo
                 takeProfit = entryPrice - (2 * (stopLoss - entryPrice));
                 
                 signals.push({
-                    date: current.price_history.date,
+                    date: current.price_history.date.toISOString().split('T')[0],
                     type: 'sell',
                     price: entryPrice,
                     reasoning: `Death Cross: ${shortMa}MA crossed below ${longMa}MA`,
@@ -138,7 +138,7 @@ function calculateMovingAverageData(fullHistory, startDate, endDate, shortMa, lo
         else if (currentPosition === 'buy') {
             if (current.price_history.low <= stopLoss) {
                 signals.push({
-                    date: current.price_history.date,
+                    date: current.price_history.date.toISOString().split('T')[0],
                     type: 'sell',
                     price: stopLoss,
                     reasoning: `Stop-loss triggered at ${stopLoss}`,
@@ -147,7 +147,7 @@ function calculateMovingAverageData(fullHistory, startDate, endDate, shortMa, lo
                 currentPosition = null;
             } else if (current.price_history.high >= takeProfit) {
                 signals.push({
-                    date: current.price_history.date,
+                    date: current.price_history.date.toISOString().split('T')[0],
                     type: 'sell',
                     price: takeProfit,
                     reasoning: `Take-profit triggered at ${takeProfit}`,
@@ -159,7 +159,7 @@ function calculateMovingAverageData(fullHistory, startDate, endDate, shortMa, lo
         else if (currentPosition === 'sell') {
             if (current.price_history.high >= stopLoss) {
                 signals.push({
-                    date: current.price_history.date,
+                    date: current.price_history.date.toISOString().split('T')[0],
                     type: 'buy',
                     price: stopLoss,
                     reasoning: `Stop-loss triggered at ${stopLoss}`,
@@ -168,7 +168,7 @@ function calculateMovingAverageData(fullHistory, startDate, endDate, shortMa, lo
                 currentPosition = null;
             } else if (current.price_history.low <= takeProfit) {
                 signals.push({
-                    date: current.price_history.date,
+                    date: current.price_history.date.toISOString().split('T')[0],
                     type: 'buy',
                     price: takeProfit,
                     reasoning: `Take-profit triggered at ${takeProfit}`,
@@ -184,7 +184,7 @@ function calculateMovingAverageData(fullHistory, startDate, endDate, shortMa, lo
         const lastPrice = dataWithMAs[dataWithMAs.length - 1].price_history.close;
         
         signals.push({
-            date: dataWithMAs[dataWithMAs.length - 1].price_history.date,
+            date: dataWithMAs[dataWithMAs.length - 1].price_history.date.toISOString().split('T')[0],
             type: currentPosition === 'buy' ? 'sell' : 'buy',
             price: lastPrice,
             reasoning: `Final position closed at end of period`,
@@ -194,7 +194,7 @@ function calculateMovingAverageData(fullHistory, startDate, endDate, shortMa, lo
 
     return {
         priceData: dataWithMAs.map(item => ({
-            date: item.price_history.date,
+            date: item.price_history.date.toISOString().split('T')[0],
             open: item.price_history.open,
             high: item.price_history.high,
             low: item.price_history.low,
@@ -303,7 +303,7 @@ async function SimulateMACrossover(body) {
                 currentCash = 0;
                 
                 return {
-                    DATE: signal.date,
+                    DATE: signal.date.split('T')[0],
                     TYPE: 'buy',
                     PRICE: signal.price,
                     REASONING: signal.reasoning,
@@ -317,7 +317,7 @@ async function SimulateMACrossover(body) {
                 sharesHeld = 0;
                 
                 return {
-                    DATE: signal.date,
+                    DATE: signal.date.split('T')[0],
                     TYPE: 'sell',
                     PRICE: signal.price,
                     REASONING: signal.reasoning,
@@ -377,10 +377,10 @@ async function SimulateMACrossover(body) {
             SIMULATIONID: `${SYMBOL}_${new Date().toISOString().replace(/[:.]/g, '-').replace('T', '_')}`,
             USERID,
             STRATEGY: 'IdCM',
-            SIMULATIONNAME: `MA Crossover ${shortMa}/${longMa}`,
+            SIMULATIONNAME: `${SYMBOL}_${new Date().toISOString().replace(/[:.]/g, '-').replace('T', '_')}`,
             SYMBOL,
-            STARTDATE: new Date(STARTDATE),
-            ENDDATE: new Date(ENDDATE),
+            STARTDATE,
+            ENDDATE,
             AMOUNT,
             SIGNALS: processedSignals,
             SPECS: formattedSpecs,

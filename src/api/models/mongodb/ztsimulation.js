@@ -6,7 +6,7 @@ const INDICATOR_SCHEMA = new mongoose.Schema({
 }, { _id: false });
 
 const CHART_DATA_SCHEMA = new mongoose.Schema({
-  DATE: { type: Date, required: true },
+  DATE: { type: String, required: true },
   OPEN: Number,
   HIGH: Number,
   LOW: Number,
@@ -16,7 +16,7 @@ const CHART_DATA_SCHEMA = new mongoose.Schema({
 }, { _id: false });
 
 const SIGNAL_SCHEMA = new mongoose.Schema({
-  DATE: { type: Date, required: true },
+  DATE: { type: String, required: true },
   TYPE: { type: String },
   PRICE: { type: Number, required: true },
   REASONING: { type: String },
@@ -53,8 +53,8 @@ const SIMULATION_SCHEMA = new mongoose.Schema({
   STRATEGY: { type: String, required: true },
   SIMULATIONNAME: { type: String, required: true },
   SYMBOL: { type: String, required: true },
-  STARTDATE: { type: Date, required: true },
-  ENDDATE: { type: Date, required: true },
+  STARTDATE: { type: String, required: true },
+  ENDDATE: { type: String, required: true },
   AMOUNT: { type: Number, required: true },
   SIGNALS: { type: [SIGNAL_SCHEMA], default: [] },
   SPECS: { type: [INDICATOR_SCHEMA], default: [] },

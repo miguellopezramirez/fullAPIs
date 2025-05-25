@@ -5,45 +5,45 @@ const DetailRowRegSchema = new mongoose.Schema({
         REGDATE: { type: Date, required: true },
         REGTIME: { type: Date, required: true },
         REGUSER: { type: String, required: true }
-      }, { _id: false });
-      
+}, { _id: false });
+
 const DetailRowSchema = new mongoose.Schema({
         ACTIVED: { type: Boolean, default: true },
         DELETED: { type: Boolean, default: false },
         DETAIL_ROW_REG: { type: [DetailRowRegSchema], default: [] }
-      }, { _id: false });
+}, { _id: false });
 
 const UsersSchema = new mongoose.Schema({
-        USERID   : {type:String,required:true},
-        USERNAME : {type:String},
-        ALIAS : {type:String},
-        FIRSTNAME : {type:String},
-        LASTNAME : {type:String},
-        EMAIL    : {type:String},
-        BIRTHDAYDATE : {type:Date},
-        COMPANYID : {type:Number},
-        COMPANYNAME :{type:String},
-        COMPANYALIAS: {type:String},
-        CEDIID: {type:String},
-        EMPLOYEEID: {type:Number},
-        PHONENUMBER: {type:String},
-        EXTENSION: {type:String},
-        DEPARTMENT: {type:String},
-        FUNCTION: {type:String},
-        STREET: {type:String},
-        POSTALCODE: {type:Number},
-        CITY: {type:String},
-        REGION: {type:String},
-        STATE: {type:String},
-        COUNTRY: {type:String},
-        AVATAR: {type:String},
+        USERID: { type: String, required: true },
+        USERNAME: { type: String },
+        ALIAS: { type: String },
+        FIRSTNAME: { type: String },
+        LASTNAME: { type: String },
+        EMAIL: { type: String },
+        BIRTHDAYDATE: { type: Date },
+        COMPANYID: { type: Number },
+        COMPANYNAME: { type: String },
+        COMPANYALIAS: { type: String },
+        CEDIID: { type: String },
+        EMPLOYEEID: { type: Number },
+        PHONENUMBER: { type: String },
+        EXTENSION: { type: String },
+        DEPARTMENT: { type: String },
+        FUNCTION: { type: String },
+        STREET: { type: String },
+        POSTALCODE: { type: Number },
+        CITY: { type: String },
+        REGION: { type: String },
+        STATE: { type: String },
+        COUNTRY: { type: String },
+        AVATAR: { type: String },
         ROLES: {
                 type: [{
-                  ROLEID: { type: String },
-                  ROLESAPID: { type: String }
+                        ROLEID: { type: String },
+                        ROLESAPID: { type: String }
                 }],
                 default: []
-              },              
+        },
         DETAIL_ROW: { type: DetailRowSchema, default: {} }
 });
 
@@ -75,7 +75,7 @@ UsersSchema.pre('save', function (next) {
 });
 
 module.exports = mongoose.model(
-    'ZTEUSERS',
-    UsersSchema,
-    'ZTEUSERS'
+        'ZTEUSERS',
+        UsersSchema,
+        'ZTEUSERS'
 );
