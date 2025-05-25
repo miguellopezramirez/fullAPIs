@@ -35,7 +35,11 @@ class InvestionsClass extends cds.ApplicationService{
         // })
 
         this.on("updateLabel", async (req)=>{
-            return servicio.UpdateLabelsValues(req);
+            try {
+                return servicio.UpdateLabelsValues(req);
+            }catch(error){
+                req.error(error.code || 500, error.message || "Error inesperado");
+            }
         })
 
         this.on("deleteLabelOrValue", async (req)=>{

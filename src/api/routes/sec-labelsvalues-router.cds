@@ -36,10 +36,11 @@ service catalogos @(path:'/api/catalogos') {
     // Ruta para actualizar un catálogo y un valor
     @Core.Description: 'Update a label and value'
     @path: 'updateLabel'
-    action updateLabel(label: labels, value: values)
+    action updateLabel(label: label, value: value_)
     returns {
         success: Boolean;
         message: String;
+        value: {};
     };
 
     // Ruta para eliminar un catálogo o un valor

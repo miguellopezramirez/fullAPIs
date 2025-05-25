@@ -270,49 +270,150 @@ async function patchLabels(req, id, updateData) {
     }
 }
 
-// Actualización de Values
-async function patchValues(req, id, updateData) {
+// Patch para labels y values
+async function UpdateLabelsValues(req) {
+    try{
+        const type = parseInt(req.req.query?.type);
+
+
+        if (type == 1) {
+            const updateData = req.req.body.label;
+            return patchLabels(req, updateData);
+        } else if (type == 2) {
+            const updateData = req.req.body.value;
+            return patchValues(req, updateData);
+        } else {
+            return {code:400, message: "Parámetro 'type' no válido. Usa 1 para labels o 2 para values." };
+        }
+    }catch(error){
+        throw error;
+    }
+}
+
+// Actualización de Labels
+async function patchLabels(req, updateData) {
     try {
-        // 1. Encontrar el value que se quiere actualizar
-        const valueToUpdate = await ztvalues.findOne({ VALUEID: id }).lean();
+        // 1. Verificar si existe el label
+        const existingLabel = await ztlabels.findOne({ LABELID: updateData.LABELID }).lean();
+        if (!existingLabel) {
+            throw ({code: 400, message: `No se encontró label con LABELID: ${id}` })
+        }
+
+        // 3. Preparar la actualización del DETAIL_ROW si viene en los datos
+        const updateObject = { ...updateData };
+        
+        // 5. Handle DETAIL_ROW update
+        if (updateData.ACTIVED) {
+            // First, mark all current registries as not current
+            await ztlabels.updateOne(
+                { LABELID: updateData.LABELID, "DETAIL_ROW.DETAIL_ROW_REG.CURRENT": true },
+                { $set: { "DETAIL_ROW.DETAIL_ROW_REG.$[elem].CURRENT": false } },
+                { arrayFilters: [{ "elem.CURRENT": true }] }
+            );
+        }
+
+                // 5. Create new registry entry
+        const newRegistry = {
+            CURRENT: true,
+            REGDATE: new Date(),
+            REGTIME: new Date(),
+            REGUSER: updateData?.REGUSER || 'system'
+        };
+
+        // Get the updated document to include the modified registries
+
+        updateObject.DETAIL_ROW = {
+            ACTIVED: updateData.ACTIVED ?? existingLabel.DETAIL_ROW?.ACTIVED ?? true,
+            DELETED: existingLabel.DETAIL_ROW?.DELETED ?? false,
+            DETAIL_ROW_REG: [
+                ...(
+                existingLabel.DETAIL_ROW?.DETAIL_ROW_REG
+                    ?.filter(reg => typeof reg === 'object' && reg !== null)
+                    ?.map(reg => ({ ...reg, CURRENT: false })) || []
+                ),
+                newRegistry
+            ]
+        };
+
+        // 4. Realizar la actualización
+        const updatedLabel = await ztlabels.findOneAndUpdate(
+            { LABELID: updateData.LABELID },
+            { $set: updateObject },
+            { new: true, lean: true }
+        );
+
+        return {
+            message: "Label actualizado exitosamente",
+            success: true,
+            value: updatedLabel
+        };
+
+    } catch (error) {
+        throw error;
+    }
+}
+
+async function patchValues(req, updateData) {
+    try {
+        // 1. Find the value to update
+        const valueToUpdate = await ztvalues.findOne({ VALUEID: updateData.VALUEID }).lean();
         if (!valueToUpdate) {
-            return { message: `No se encontró value con VALUEID: ${id}` };
+            throw {
+                code: 400,
+                message: `No se encontró value con VALUEID: ${id}`,
+                error: "VALUE_NOT_FOUND"
+            };
         }
 
-        // 2. Validar que no se modifique LABELID o VALUEPAID
+        // 2. Prevent LABELID changes
         if (updateData.LABELID && updateData.LABELID !== valueToUpdate.LABELID) {
-            return { message: "No se puede modificar el LABELID de un value existente" };
+            throw { 
+                code: 400,
+                message: "No está permitido modificar el LABELID de un value existente",
+                error: "LABELID_MODIFICATION_NOT_ALLOWED"
+            };
         }
 
-        if (updateData.VALUEPAID && updateData.VALUEPAID !== valueToUpdate.VALUEPAID) {
-            return { message: "No se puede modificar el VALUEPAID de un value existente" };
-        }
+        // 4. Prepare update object
+        const updateObject = { ...updateData };
+    
+
+
+        // 5. Create new registry entry
+        const newRegistry = {
+            CURRENT: true,
+            REGDATE: new Date(),
+            REGTIME: new Date(),
+            REGUSER: updateData?.REGUSER || 'system'
+        };
+
+        // Get the updated document to include the modified registries
+
+        updateObject.DETAIL_ROW = {
+            ACTIVED: updateData.ACTIVED ?? valueToUpdate.DETAIL_ROW?.ACTIVED ?? true,
+            DELETED: valueToUpdate.DETAIL_ROW?.DELETED ?? false,
+            DETAIL_ROW_REG: [
+                ...(
+                valueToUpdate.DETAIL_ROW?.DETAIL_ROW_REG
+                    ?.filter(reg => typeof reg === 'object' && reg !== null)
+                    ?.map(reg => ({ ...reg, CURRENT: false })) || []
+                ),
+                newRegistry
+            ]
+        };
         
 
-        // 3. Validar que si se modifica el VALUEID, el nuevo no exista ya
-        if (updateData.VALUEID && updateData.VALUEID !== id) {
-                // 4. Validar que no tenga valores dependientes
-            const valor = await valideLabelid(valueToUpdate, "modificar");
-            if (valor !== "" ) { // o simplemente if (valor != null)
-                return valor;
-            }
-            const existingValue = await ztvalues.findOne({ VALUEID: updateData.VALUEID }).lean();
-            if (existingValue) {
-                return { message: `El VALUEID ${updateData.VALUEID} ya está en uso` };
-            }
-        }
-        
-        // 5. Si pasa todas las validaciones, proceder con la actualización
+        // 6. Perform the update
         const updatedValue = await ztvalues.findOneAndUpdate(
-            { VALUEID: id },
-            { $set: updateData },
+            { VALUEID: updateData.VALUEID },
+            { $set: updateObject },
             { new: true, lean: true }
         );
         
         return { 
             message: "Value actualizado exitosamente",
             success: true,
-            // updatedValue: updatedValue 
+            value: updatedValue
         };
     } catch (error) {
         throw error;
