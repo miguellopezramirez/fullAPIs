@@ -1,29 +1,40 @@
 const ztsimulation = require('../models/mongodb/ztsimulation');
- async function getAllSimulaciones(req) {
-      try {
-        // Verifica si se ha proporcionado un idUser en la consulta
-        const idUser =req.req.body?.idUser;
-        const idSimulation = req.req.query?.id;
+
+async function getAllSimulaciones(req) {
+    try {
+        // Verifica si se ha proporcionado un USERID en la consulta
+        const USERID = req.req.body?.USERID;
+        const SIMULATIONID = req.req.query?.id;
         
         // Crear una variable para almacenar la simulación
         let simulation;
         
         // Caso 1: Búsqueda por ID específico
-        if (idSimulation != null) {
-            simulation = await ztsimulation.findOne({idSimulation}).lean();
-            //console.log("idSimulation", idSimulation);
+        if (SIMULATIONID != null) {
+            simulation = await ztsimulation.findOne({ SIMULATIONID }).lean();
         }
-        // Caso 2: Obtener todos los registros (con paginación)
+        // Caso 2: Obtener todos los registros (filtrados por campos)
         else {
-           simulation = await ztsimulation.find({idUser}).lean();
-           //console.log("otro", idUser);
+            simulation = await ztsimulation.find(
+                { USERID },
+                {
+                    SIMULATIONID: 1,
+                    SIMULATIONNAME: 1,
+                    STARTDATE: 1,
+                    ENDDATE: 1,
+                    STRATEGY: 1,
+                    SYMBOL: 1,
+                    SUMMARY: 1,
+                    SPECS: 1,
+                    _id: 0
+                }
+            ).lean();
         }
 
-        return (simulation);
+        return simulation;
     } catch(e) {
-        console.error("Error en GetAllPricesHistory:", e);
-        return e; // Es mejor propagar el error para manejarlo en el controlador
-
+        console.error("Error en GetAllSimulaciones:", e);
+        return { error: e.message }; // Devuelve el error en formato objeto
     }
 }
 

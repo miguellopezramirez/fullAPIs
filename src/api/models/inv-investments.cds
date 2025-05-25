@@ -26,8 +26,8 @@ entity SIMULATION {
         STRATEGYID     : String;
         SIMULATIONNAME : String;
         SYMBOL         : String;
-        STARTDATE      : Date;
-        ENDDATE        : Date;
+        STARTDATE      : String;
+        ENDDATE        : String;
         AMOUNT         : Decimal(10, 2);
         SPECS          : array of INDICATOR;
         SIGNALS        : array of SIGNAL;
@@ -38,7 +38,7 @@ entity SIMULATION {
 
 // TIPO PARA LAS SEÑALES DE COMPRA/VENTA
 type SIGNAL {
-    DATE      : Date;              // FORMATO "YYYY-MM-DD"
+    DATE      : String;              // FORMATO "YYYY-MM-DD"
     TYPE      : String;
     PRICE     : Decimal(10, 2);
     REASONING : String;
@@ -59,7 +59,7 @@ type SUMMARY {
 
 // TIPO PARA LOS DATOS DEL GRÁFICO
 type CHART_DATA {
-    DATE       : DateTime;           // FORMATO ISO 8601
+    DATE       : String;           // FORMATO ISO 8601
     OPEN       : Decimal(10, 2);
     HIGH       : Decimal(10, 2);
     LOW        : Decimal(10, 2);
