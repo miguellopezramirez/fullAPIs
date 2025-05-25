@@ -4,39 +4,99 @@ const ztroles = require('../models/mongodb/ztroles')
 
 async function GetAllLabelsValues(req) {
     try {
-        const type = parseInt(req.req.query?.type);
+        const query = req.req.query;
+        const type = query?.type;
 
-        if (type == 1) {
-            
-            return getLabels(req);
-        } else if (type == 2) {
-            
-            return getValues(req)
-        } else {
-            // Podés personalizar esta parte según tu API
-            return { message: "Parámetro 'type' no válido. Usa 1 para labels o 2 para values." };
+        if (type === 'label') {
+            const labelId = query.id;
+            if (labelId) {
+                return await getLabelById(labelId);
+            } else {
+                return await getAllLabels();
+            }
+
+        } else if (type === 'value') {
+            const valueId = query.id;
+            const labelId = query.labelID;
+
+            if (valueId) {
+                return await getValueById(valueId);
+            } else if (labelId) {
+                return await getValuesByLabel(labelId);
+            } else {
+                return await getAllValues();
+            }
+
+        }else if (type === 'catalog'){
+            return await getAllCatalog();
+        } 
+        else {
+            throw ({code: 400, message:"Parámetro 'type' no válido. Usa 'label', 'value' o 'catalog'." });
         }
     } catch (error) {
         throw error;
     }
 }
 
-async function getLabels(req) {
-    try {
-        const labels = await ztlabels.find().lean();
-        return (labels);
-    } catch (error) {
-        throw error;
-    }
+
+// LABELS
+async function getAllLabels() {
+    return await ztlabels.find({}).lean();
 }
 
-async function getValues(req) {
-    try {
-        const values = await ztvalues.find().lean();
-        return (values);
-    } catch (error) {
-        throw error;
-    }
+async function getLabelById(labelId) {
+    return await ztlabels.findOne({ LABELID: labelId }).lean();
+}
+
+// VALUES
+async function getAllValues() {
+    return await ztvalues.find({}).lean();
+}
+
+async function getValueById(valueId) {
+    return await ztvalues.findOne({ VALUEID: valueId }).lean();
+}
+
+async function getValuesByLabel(labelId) {
+    return await ztvalues.find({ LABELID: labelId }).lean();
+}
+
+// Catalagos
+async function getAllCatalog() {
+  try {
+    // Obtener todos los labels
+    const labels = await ztlabels.find({
+    //   'DETAIL_ROW.ACTIVED': true,
+    //   'DETAIL_ROW.DELETED': false
+    }).lean();
+    
+    // Obtener todos los values activos
+    const allValues = await ztvalues.find({
+    //   'DETAIL_ROW.ACTIVED': true,
+    //   'DETAIL_ROW.DELETED': false
+    }).lean();
+    
+    // Mapear los labels con sus values correspondientes
+    const result = labels.map(label => {
+      // Filtrar los values que pertenecen a este label
+      const valuesForLabel = allValues.filter(value => 
+        value.LABELID === label.LABELID 
+        // && 
+        // value.COMPANYID === label.COMPANYID && 
+        // value.CEDIID === label.CEDIID
+      );
+      
+      return {
+        ...label,
+        values: valuesForLabel
+      };
+    });
+    
+    return result;
+  } catch (error) {
+    console.error('Error en getLabelsWithValues:', error);
+    throw error;
+  }
 }
 
 // Patch de labels y values
@@ -63,44 +123,148 @@ async function UpdateLabelsValues(req) {
 
 //POST
 async function PostLabelsValues(req) {
+    try {
+        const type = parseInt(req.req.query?.type);
 
-    const type = parseInt(req.data.type);  // Usar req.data para acceder al cuerpo de la solicitud
+        if (type === 1) {
+            const labelItem = req.data.label;
+            if (!labelItem) {
+                throw { code: 400, message: "Se requiere un objeto 'label' en la solicitud" };
+            }
 
-    if (type === 1) {
-        const labelData = req.data.label;
-        if (!labelData || !labelData.LABELID) {
-            return { message: "Se requiere un objeto 'label' con un LABELID." };
+            // Validación del label
+            if (!labelItem.LABELID || !labelItem.REGUSER) {
+                throw { 
+                    code: 400, 
+                    message: "Los campos LABELID y REGUSER son obligatorios para un label" 
+                };
+            }
+
+            // Verificar si el label ya existe
+            const existingLabel = await ztlabels.findOne({ LABELID: labelItem.LABELID }).lean();
+            if (existingLabel) {
+                throw { 
+                    code: 409, 
+                    message: `Ya existe un label con LABELID: ${labelItem.LABELID}` 
+                };
+            }
+
+            // Crear el nuevo label
+            const newLabel = {
+                LABELID: labelItem.LABELID,
+                COMPANYID: labelItem.COMPANYID,
+                CEDIID: labelItem.CEDIID,
+                LABEL: labelItem.LABEL,
+                INDEX: labelItem.INDEX,
+                COLLECTION: labelItem.COLLECTION,
+                SECTION: labelItem.SECTION,
+                SEQUENCE: labelItem.SEQUENCE,
+                IMAGE: labelItem.IMAGE,
+                DESCRIPTION: labelItem.DESCRIPTION,
+                DETAIL_ROW: {
+                    ACTIVED: labelItem.ACTIVED !== undefined ? labelItem.ACTIVED : true,
+                    DELETED: false,
+                    DETAIL_ROW_REG: [{
+                        CURRENT: true,
+                        REGDATE: new Date(),
+                        REGTIME: new Date(),
+                        REGUSER: labelItem.REGUSER
+                    }]
+                }
+            };
+
+            // Guardar el label
+            const savedLabel = await ztlabels.create(newLabel);
+
+            return {
+                message: "Label insertado correctamente",
+                success: true,
+                label: newLabel
+            };
+
+        } else if (type === 2) {
+            const valueItem = req.data.value;
+            if (!valueItem) {
+                throw { code: 400, message: "Se requiere un objeto 'value' en la solicitud" };
+            }
+
+            // Validación del value
+            if (!valueItem.VALUEID || !valueItem.LABELID || !valueItem.REGUSER) {
+                throw { 
+                    code: 400, 
+                    message: "Los campos VALUEID, LABELID y REGUSER son obligatorios para un value" 
+                };
+            }
+
+            // Verificar si el label padre existe
+            const labelExists = await ztlabels.findOne({ LABELID: valueItem.LABELID }).lean();
+            if (!labelExists) {
+                throw { 
+                    code: 404, 
+                    message: `No existe un label con LABELID: ${valueItem.LABELID}` 
+                };
+            }
+
+            // Verificar si el value ya existe
+            const existingValue = await ztvalues.findOne({ VALUEID: valueItem.VALUEID }).lean();
+            if (existingValue) {
+                throw { 
+                    code: 409, 
+                    message: `Ya existe un value con VALUEID: ${valueItem.VALUEID}` 
+                };
+            }
+
+            // Crear el nuevo value
+            const newValue = {
+                VALUEID: valueItem.VALUEID,
+                COMPANYID: valueItem.COMPANYID,
+                CEDIID: valueItem.CEDIID,
+                LABELID: valueItem.LABELID,
+                VALUEPAID: valueItem.VALUEPAID,
+                VALUE: valueItem.VALUE,
+                ALIAS: valueItem.ALIAS,
+                SEQUENCE: valueItem.SEQUENCE,
+                IMAGE: valueItem.IMAGE,
+                DESCRIPTION: valueItem.DESCRIPTION,
+                DETAIL_ROW: {
+                    ACTIVED: valueItem.ACTIVED !== undefined ? valueItem.ACTIVED : true,
+                    DELETED: false,
+                    DETAIL_ROW_REG: [{
+                        CURRENT: true,
+                        REGDATE: new Date(),
+                        REGTIME: new Date(),
+                        REGUSER: valueItem.REGUSER
+                    }]
+                }
+            };
+
+            // Guardar el value
+            const savedValue = await ztvalues.create(newValue).lean();
+
+            return {
+                message: "Value insertado correctamente",
+                success: true,
+                value: newValue
+            };
+
+        } else {
+            throw { 
+                code: 400, 
+                message: "Parámetro 'type' no válido. Usa 1 para labels o 2 para values." 
+            };
         }
 
-        const existingLabel = await ztlabels.findOne({ LABELID: labelData.LABELID }).lean();
-        if (existingLabel) {
-            return { message: `Ya existe un label con LABELID: ${labelData.LABELID}` };
+    } catch (error) {
+        // Si el error ya tiene código (es un error lanzado por nosotros), lo devolvemos tal cual
+        if (error.code) {
+            throw error;
         }
-
-        const newLabel = new ztlabels(labelData);
-        await newLabel.save();
-
-        return {success: true, message: "Label creado exitosamente" };
-
-          
-              } 
-    else if (type === 2) {
-        const valueData = req.data.value;
-        if (!valueData || !valueData.VALUEID || !valueData.LABELID) {
-            return { message: "Se requiere un objeto 'value' con VALUEID y LABELID." };
-        }
-
-        const existingValue = await ztvalues.findOne({ VALUEID: valueData.VALUEID }).lean();
-        if (existingValue) {
-            return { message: `Ya existe un value con VALUEID: ${valueData.VALUEID}` };
-        }
-
-        const newValue = new ztvalues(valueData);
-        await newValue.save();
-        return {success: true, message: "Value creado exitosamente" };
-    } 
-    else {
-        return { message: "Parámetro 'type' no válido. Usa 1 para labels o 2 para values." };
+        // Para otros errores (de base de datos, etc.)
+        console.error('Error en PostLabelsValues:', error);
+        throw { 
+            code: 500, 
+            message: "Error interno del servidor al procesar la solicitud" 
+        };
     }
 }
 
