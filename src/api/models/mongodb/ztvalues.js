@@ -3,8 +3,8 @@ const mongoose = require('mongoose');
 // Values
 
 const ztvalues = new mongoose.Schema({
-    COMPANYID: { type: String },
-    CEDIID: { type: String },
+    COMPANYID: { type: Number },
+    CEDIID: { type: Number },
     LABELID: { type: String, required: true },
     VALUEPAID: { type: String }, // valor padre (opcional)
     VALUEID: { type: String, required: true },

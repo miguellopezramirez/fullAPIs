@@ -1,299 +1,195 @@
-const ztusers = require('../models/mongodb/ztusers')
-const ztroles = require('../models/mongodb/ztroles')
-const ztvalues = require('../models/mongodb/ztvalues')
+    //Importacion de modelos
+    //────୨ৎ────
+    const RoleSchema = require('../models/mongodb/ztroles'); // Modelo Roles
+    const ValueSchema = require('../models/mongodb/ztvalues'); // Modelo para validar proceso
+    const RolesInfoSchema = require('../models/mongodb/getRolesModel'); // Vista Roles
+    const RolesInfoUsers = require('../models/mongodb/getRolesUsersModel'); // Vista Usuarios por Rol
 
-async function PatchUser(req) {
-    const { body } = req;
+//────୨ৎ────    
+// Servicio CRUD para Roles
+//────୨ৎ────
+async function RolesCRUD(req) {
+  try {
+    //────୨ৎ────
+    //Parámetros
+    //────୨ৎ────
+    const { procedure, type, roleid } = req.req.query;
+    const currentUser = req.req?.query?.RegUser || 'SYSTEM';
+    const body = req.req.body;
+    let result;
 
-    const { id, data: updates = {} } = body;
-    if (!id) throw new Error("Se requiere USERID");
+    // Validación de PRIVILEGIOS -> Validar si los PROCESSID existen
+    //────୨ৎ────
+    const validarProcessIds = async (privilegios = []) => {
+      const processIds = (privilegios || []).map(p =>
+        p.PROCESSID.replace('IdProcess-', '').trim()
+      );
 
-    try {
-        //Validar que el usuario exista
-        const user = await ztusers.findOne({ USERID: id });
-        if (!user || (user.DETAIL_ROW?.DELETED === true)) 
-            throw new Error(`Usuario con USERID ${id} no encontrado`); //Es el mismo mensaje de error si el usuario fue eliminado lógica o físicamente, o si nunca existió. 
-        
-        //Si se modificará un rol, validar que el rol exista
-        if (updates.ROLES) {
-            await validateRolesExist(updates.ROLES);
+      const procesosValidos = await ValueSchema.find({
+        LABELID: 'IdProcesses',
+        VALUEID: { $in: processIds }
+      }).lean();
+
+      if (procesosValidos.length !== processIds.length) {
+        const encontrados = procesosValidos.map(p => p.VALUEID);
+        const faltantes = processIds.filter(id => !encontrados.includes(id));
+        throw new Error(`No existe el siguiente proceso en la Base de Datos: ${faltantes.join(', ')}`);
+      }
+    };
+
+    // Switch princpal de Roles
+    //────୨ৎ────
+    switch (procedure) {
+
+      //All roles
+      //────୨ৎ────
+      case 'get':
+        switch (type) {
+          case 'all':
+            // Obtener todos los roles (vista enriquecida)
+            //────୨ৎ────
+            result = await RolesInfoSchema.find().lean();
+            break;
+          case 'one':
+            // Obtener un solo rol por ROLEID
+            //────୨ৎ────
+            result = await RolesInfoSchema.find({ ROLEID: roleid }).lean();
+            break;
+          case 'users':
+            // Obtener usuarios relacionados con un rol, con la otra vista enriquecida
+            //────୨ৎ────
+            const filter = roleid ? { ROLEID: roleid } : {};
+            result = await RolesInfoUsers.find(filter).lean();
+            break;
+          default:
+            throw new Error('Tipo inválido en GET');
+        }
+        break;
+
+      // CREAR NUEVO ROL, OJO se esta creando en ZTEROLES, y no ZTROLES
+      //────୨ৎ────
+      case 'post':
+        // Validar los privilegios asociados
+        //────୨ৎ────
+        await validarProcessIds(body.PRIVILEGES);
+
+        // Crear nueva instancia del modelo y registrar el usuario
+        //────୨ৎ────
+        const instance = new RoleSchema(body);
+        instance._reguser = currentUser;
+
+        const nuevoRol = await instance.save();
+        result = nuevoRol.toObject();
+        break;
+
+      // ACTUALIZAR ROL EXISTENTE
+      //────୨ৎ────
+      case 'put':
+        if (!roleid) throw new Error('Parametro faltante (RoleID)');
+        const updateData = body;
+        if (!updateData || Object.keys(updateData).length === 0) {
+          throw new Error('No se proporcionan campos para actualizar');
         }
 
-        //Manejo del borrado lógico 
-        if (Object.keys(updates).every(key => key === 'USERID')) {
-            updates.DETAIL_ROW = {
-                ...user.DETAIL_ROW, 
-                DELETED: true,      
-                ACTIVED: false
-            };
-        }
-        else {
-            updates.DETAIL_ROW = {
-                ...user.DETAIL_ROW, 
-                DELETED: false,
-                ACTIVED: true
-            };
-        }
-        //Agregar registro de DETAIL_ROW
-        updates.DETAIL_ROW.DETAIL_ROW_REG = updateAuditLog(
-            user.DETAIL_ROW?.DETAIL_ROW_REG || [], 
-            req.user?.id || 'aramis'
-        );
+        const roleToUpdate = await RoleSchema.findOne({ ROLEID: roleid });
+        if (!roleToUpdate) throw new Error('El rol a actualizar no existe');
 
-        //Actualizar datos
-        const result = await ztusers.updateOne({ USERID: id }, { $set: updates });
-        return { success: true, modifiedCount: result.modifiedCount };
-
-    } catch (error) {
-        console.error("Error al actualizar el usuario: ", error.message);
-        throw error;
-    }
-}
-
-async function PatchRole(req) {
-    const { body } = req;
-
-    const { id, data: updates = {} } = body;
-    if (!id) throw { code: 'ROLEID_REQUIRED', message: "Se requiere ROLEID" };
-
-    try {
-        // Verifica que el rol exista
-        const role = await ztroles.findOne({ ROLEID: id });
-        if (!role || (role.DETAIL_ROW?.DELETED === true))
-            throw { code: 'ROLE_NOT_FOUND', message: `Rol con ROLEID ${id} no encontrado` };
-
-        // Si se modifican procesos o privilegios validar que existan
-        if (updates.PRIVILEGES) {
-            await validatePrivilegesExist(updates.PRIVILEGES);
+        // Validar privilegios si se actualizan
+        if (updateData.PRIVILEGES) {
+          await validarProcessIds(updateData.PRIVILEGES);
         }
 
-        // Manejo del borrado lógico
-        if (Object.keys(updates).every(key => key === 'ROLEID')) {
-            updates.DETAIL_ROW = {
-                ...role.DETAIL_ROW,
-                DELETED: true,
-                ACTIVED: false
-            };
+        // Historial de modificación (DETAIL_ROW)
+        const nowPut = new Date();
+        if (!roleToUpdate.DETAIL_ROW) {
+          roleToUpdate.DETAIL_ROW = { ACTIVED: true, DELETED: false, DETAIL_ROW_REG: [] };
+        }
+
+        if (Array.isArray(roleToUpdate.DETAIL_ROW.DETAIL_ROW_REG)) {
+          roleToUpdate.DETAIL_ROW.DETAIL_ROW_REG.forEach(reg => {
+            if (reg.CURRENT) reg.CURRENT = false;
+          });
         } else {
-            updates.DETAIL_ROW = {
-                ...role.DETAIL_ROW,
-                DELETED: false,
-                ACTIVED: true
-            };
-        }
-        // Agregar registro de DETAIL_ROW
-        updates.DETAIL_ROW.DETAIL_ROW_REG = updateAuditLog(
-            role.DETAIL_ROW?.DETAIL_ROW_REG || [],
-            req.user?.id || 'aramis'
-        );
-
-        // Actualizar datos
-        const result = await ztroles.updateOne({ ROLEID: id }, { $set: updates });
-        return { success: true, modifiedCount: result.modifiedCount };
-
-    } catch (error) {
-        console.error("Error al actualizar el rol:", error.message || error);
-        throw error; // Re-lanzar el error para que el frontend lo reciba
-    }
-}
-
-// --- Funciones de Validación ---
-async function validateRolesExist(roles) {
-    const roleIds = roles.map(r => r.ROLEID);
-    const existingRoles = await ztroles.countDocuments({ ROLEID: { $in: roleIds } });
-    if (existingRoles !== roleIds.length) {
-        throw new Error("Uno o más ROLES no existen");
-    }
-}
-
-async function validatePrivilegesExist(privileges) {
-    await Promise.all(privileges.map(async (priv) => {
-        const processIdPart = priv.PROCESSID.split('-')[1];
-        if (!processIdPart) {
-            throw {
-                code: 'INVALID_PROCESSID',
-                message: `Formato inválido en PROCESSID: ${priv.PROCESSID}`
-            };
+          roleToUpdate.DETAIL_ROW.DETAIL_ROW_REG = [];
         }
 
-        const [processCheck, ...privilegeChecks] = await Promise.all([
-            ztvalues.countDocuments({ LABELID: "IdProcesses", VALUEID: processIdPart }),
-            ...priv.PRIVILEGEID.map(pid =>
-                ztvalues.countDocuments({ LABELID: "IdPrivileges", VALUEID: pid })
-            )
-        ]);
-
-        if (!processCheck) {
-            throw {
-                code: 'PROCESSID_NOT_FOUND',
-                message: `PROCESSID '${processIdPart}' no existe`
-            };
-        }
-
-        privilegeChecks.forEach((exists, i) => {
-            if (!exists) {
-                throw {
-                    code: 'PRIVILEGEID_NOT_FOUND',
-                    message: `PRIVILEGEID '${priv.PRIVILEGEID[i]}' no existe`
-                };
-            }
+        roleToUpdate.DETAIL_ROW.DETAIL_ROW_REG.push({
+          CURRENT: true,
+          REGDATE: nowPut,
+          REGTIME: nowPut,
+          REGUSER: currentUser
         });
-    }));
-}
 
-// --- Auditoría ---
-function updateAuditLog(existingLog = [], currentUser) {
-    // Marcar registros anteriores como no actuales
-    const updatedLog = existingLog.map(entry => ({ ...entry, CURRENT: false }));
+        // Aplicar cambios
+        Object.assign(roleToUpdate, updateData);
+        const updatedRole = await roleToUpdate.save();
+        result = updatedRole.toObject();
+        break;
 
-    // Añadir nuevo registro
-    updatedLog.push({
-        CURRENT: true,
-        REGDATE: new Date(),
-        REGTIME: new Date(),
-        REGUSER: currentUser
-    });
+      // ELIMINAR ROL (Lógica o Física)
+      case 'delete':
+        if (!roleid) throw new Error('Parametro faltante (RoleID)');
 
-    return updatedLog;
-}
+        switch (type) {
+          case 'logic':
+            // Eliminación lógica (se marca como inactivo y eliminado)
+            const roleToLogicDelete = await RoleSchema.findOne({ ROLEID: roleid });
+            if (!roleToLogicDelete) throw new Error('No se encontró ningún rol');
 
-async function DeleteUserOrRole(req) {
-    const { USERID, ROLEID } = req.body;
+            const nowDel = new Date();
+            if (!roleToLogicDelete.DETAIL_ROW) {
+              roleToLogicDelete.DETAIL_ROW = { ACTIVED: true, DELETED: false, DETAIL_ROW_REG: [] };
+            }
 
-    try {
-        // 1. Determinar entidad (usuario o rol)
-        if (USERID) {
-            // Eliminar usuario
-            const result = await ztusers.deleteOne({ USERID });
-            if (result.deletedCount === 0) throw new Error(`Usuario con USERID ${USERID} no encontrado`);
-            return { success: true, message: `Usuario ${USERID} eliminado físicamente` };
+            if (Array.isArray(roleToLogicDelete.DETAIL_ROW.DETAIL_ROW_REG)) {
+              roleToLogicDelete.DETAIL_ROW.DETAIL_ROW_REG.forEach(reg => {
+                if (reg.CURRENT) reg.CURRENT = false;
+              });
+            } else {
+              roleToLogicDelete.DETAIL_ROW.DETAIL_ROW_REG = [];
+            }
 
-        } else if (ROLEID) {
-            // Validar que el rol no esté en uso
-            const usersWithRole = await ztusers.countDocuments({ 
-                "ROLES.ROLEID": ROLEID 
+            roleToLogicDelete.DETAIL_ROW.ACTIVED = false;
+            roleToLogicDelete.DETAIL_ROW.DELETED = true;
+            roleToLogicDelete.DETAIL_ROW.DETAIL_ROW_REG.push({
+              CURRENT: true,
+              REGDATE: nowDel,
+              REGTIME: nowDel,
+              REGUSER: currentUser
             });
-            if (usersWithRole > 0) throw new Error(`No se puede eliminar: Rol ${ROLEID} está asignado a ${usersWithRole} usuario(s)`);
 
-            // Eliminar rol
-            const result = await ztroles.deleteOne({ ROLEID });
-            if (result.deletedCount === 0) throw new Error(`Rol con ROLEID ${ROLEID} no encontrado`);
-            return { success: true, message: `Rol ${ROLEID} eliminado físicamente` };
+            const logicDeleted = await roleToLogicDelete.save();
+            result = logicDeleted.toObject();
+            break;
 
-        } else {
-            throw new Error("Se requiere USERID o ROLEID");
+          case 'hard':
+            // Eliminación física (borrado de la base de datos)
+            const hardDeleted = await RoleSchema.deleteOne({ ROLEID: roleid });
+            if (hardDeleted.deletedCount === 0) {
+              throw new Error('No existe el rol especificado.');
+            }
+            result = { message: 'Rol eliminado.' };
+            break;
+
+          default:
+            throw new Error('Tipo inválido en DELETE');
         }
-    } catch (error) {
-        console.error("Error al eliminar el registro:", error);
-        throw error;
+        break;
+
+      //Default si no es ningun procedure o es invalido
+      //────୨ৎ────
+      default:
+        throw new Error('Parámetro "procedure" inválido o no especificado');
     }
+
+    // Retornar resultado final
+    return JSON.parse(JSON.stringify(result));
+  } catch (error) {
+    console.error('Error en RolesCRUD:', error);
+    return { error: true, message: error.message };
+  }
 }
 
-// --- GET ALL ---
-async function GetAllUsers() {
-    try {
-        const users = await ztusers.find({}).lean(); 
-      
-        return users;
-    } catch (error) {
-        console.error("Error en GetAllUsers:", error);
-        throw error;
-    }
-}
+//Si sigues la misma logica aqui puedes meter lo de UsersCRUD
 
-async function GetAllRoles() {
-    try {
-        const roles = await ztroles.find({}).lean(); //lean para que parsie en json si no me truena xd
-        return roles;
-    } catch (error) {
-        console.error("Error en GetAllRoles:", error);
-        throw error;
-    }
-}
-// --- GET USER BY ID ---
-async function GetUserById(userId) {
-    try {
-        const user = await ztusers.findOne({ USERID: userId }).lean();
-        if (!user) throw new Error(`Usuario con USERID ${userId} no encontrado`);
-        return user;
-    } catch (error) {
-        console.error("Error en GetUserById:", error);
-        throw error;
-    }
-}
-
-// --- GET ROLE BY ID ---
-async function GetRoleById(roleId) {
-    try {
-        const role = await ztroles.findOne({ ROLEID: roleId }).lean();
-        if (!role) throw new Error(`Rol con ROLEID ${roleId} no encontrado`);
-        return role;
-    } catch (error) {
-        console.error("Error en GetRoleById:", error);
-        throw error;
-    }
-}
-
-async function CreateUser(req) {
-    const { user } = req.body;
-    if (!user?.USERID) throw new Error("USERID es requerido");
-
-    try {
-        const exists = await ztusers.findOne({ USERID: user.USERID });
-        if (exists) throw new Error(`Ya existe un usuario con USERID ${user.USERID}`);
-
-        if (user.ROLES) {
-            await validateRolesExist(user.ROLES);
-        }
-
-        user.DETAIL_ROW = {
-            ACTIVED: true,
-            DELETED: false,
-            DETAIL_ROW_REG: updateAuditLog([], req.user?.id || 'aramis')
-        };
-
-        await ztusers.create(user);
-
-        return { success: true, USERID: user.USERID };
-    } catch (error) {
-        console.error("Error al crear el usuario:", error.message);
-        throw error;
-    }
-}
-
-async function CreateRole(req) {
-    const { role } = req.body;
-    console.log(role);
-    if (!role?.ROLEID) throw new Error("ROLEID es requerido");
-
-    try {
-        const exists = await ztroles.findOne({ ROLEID: role.ROLEID });
-        if (exists) throw new Error(`Ya existe un rol con ROLEID ${role.ROLEID}`);
-
-
-        role.DETAIL_ROW = {
-            ACTIVED: true,
-            DELETED: false,
-            DETAIL_ROW_REG: updateAuditLog([], req.user?.id || 'aramis')
-        };
-
-        await ztroles.create(role);
-
-        return { success: true, ROLEID: role.ROLEID };
-    } catch (error) {
-        console.error("Error al crear el rol:", error.message);
-        throw error;
-    }
-}
-
-module.exports = {
-    PatchUser,
-    PatchRole,
-    DeleteUserOrRole,
-    GetAllUsers,
-    GetAllRoles,
-    GetUserById,  // exportamos la nueva función
-    GetRoleById,   // exportamos la nueva función
-    CreateUser,
-    CreateRole
-};
+module.exports = { RolesCRUD };

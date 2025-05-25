@@ -7,7 +7,9 @@ service catalogos @(path:'/api/catalogos') {
 
     // Proyección de las entidades labels y values
     entity labels as projection on mysec.labels;
+    entity label as projection on mysec.label;
     entity values as projection on mysec.values;
+    entity value_ as projection on mysec.value;
 
     // Ruta para obtener todos los catálogos
     @Core.Description: 'Get all labels'
@@ -22,12 +24,13 @@ service catalogos @(path:'/api/catalogos') {
     // returns array of labels;
 
     // Ruta para agregar un valor a un catálogo
-    @Core.Description: 'Add a value to a label'
+    @Core.Description: 'd aAd value to a label'
     @path: 'createLabel'
-    action createLabel(label: labels, value: values, type: Integer) 
+    action createLabel(label: labels, value: values) 
     returns {
         success: Boolean;
         message: String;
+        value: {};
     };
 
     // Ruta para actualizar un catálogo y un valor
@@ -44,4 +47,10 @@ service catalogos @(path:'/api/catalogos') {
     @path: 'deleteLabelOrValue'
     function deleteLabelOrValue() 
     returns array of labels;
+
+    // Ruta para eliminar un catálogo o un valor
+    @Core.Description: 'Delete a label or value'
+    @path: 'logicalLabelValue'
+    function logicalLabelValue() 
+    returns {};
 };
