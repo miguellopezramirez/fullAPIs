@@ -17,7 +17,7 @@ module.exports = async (o) =>{
         let app = express();
         app.express = express;
         //FIC: Declaramos la variable app igualandola a express 
-// const app = express();
+        // const app = express();
 
 
         //MALR: 🖖🛑 limit json api response
