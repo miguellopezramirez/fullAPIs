@@ -177,6 +177,41 @@ async function RolesCRUD(req) {
         }
         break;
 
+        // ACTIVAR ROL
+//────୨ৎ────
+case 'activate':
+  if (!roleid) throw new Error('Parametro faltante (RoleID)');
+
+  const roleToActivate = await RoleSchema.findOne({ ROLEID: roleid });
+  if (!roleToActivate) throw new Error('No se encontró ningún rol');
+
+  const nowActivate = new Date();
+  if (!roleToActivate.DETAIL_ROW) {
+    roleToActivate.DETAIL_ROW = { ACTIVED: false, DELETED: true, DETAIL_ROW_REG: [] };
+  }
+
+  if (Array.isArray(roleToActivate.DETAIL_ROW.DETAIL_ROW_REG)) {
+    roleToActivate.DETAIL_ROW.DETAIL_ROW_REG.forEach(reg => {
+      if (reg.CURRENT) reg.CURRENT = false;
+    });
+  } else {
+    roleToActivate.DETAIL_ROW.DETAIL_ROW_REG = [];
+  }
+
+  roleToActivate.DETAIL_ROW.ACTIVED = true;
+  roleToActivate.DETAIL_ROW.DELETED = false;
+  roleToActivate.DETAIL_ROW.DETAIL_ROW_REG.push({
+    CURRENT: true,
+    REGDATE: nowActivate,
+    REGTIME: nowActivate,
+    REGUSER: currentUser
+  });
+
+  const activatedRole = await roleToActivate.save();
+  result = activatedRole.toObject();
+  break;
+
+
       //Default si no es ningun procedure o es invalido
       //────୨ৎ────
       default:
