@@ -75,7 +75,7 @@ UsersSchema.pre('save', function (next) {
 });
 
 module.exports = mongoose.model(
-        'ZTEUSERS',
+        'ZTUSERS',
         UsersSchema,
-        'ZTEUSERS'
+        'ZTUSERS'
 );
