@@ -248,6 +248,10 @@ async function UsersCRUD(req) {
                 }
                 break;
 
+            case 'activate': // <--- NUEVO CASO
+                res = await ActivateUser(userid, req);
+                break;
+
             default:
                 throw new Error('Parámetros inválidos o incompletos');
         }
@@ -257,6 +261,34 @@ async function UsersCRUD(req) {
         console.error('Error en UsersCRUD:', error);
         return { error: true, message: error.message };
     }
+}
+
+// ============= ACTIVAR USER =============
+async function ActivateUser(userid, req) {
+    const currentUser = req.req?.query?.RegUser || 'SYSTEM';
+    const user = await UsersSchema.findOne({ USERID: userid });
+    if (!user) throw new Error('No se encontró ningún usuario');
+    if (!user.DETAIL_ROW) {
+        user.DETAIL_ROW = { ACTIVED: false, DELETED: true, DETAIL_ROW_REG: [] };
+    }
+    const now = new Date();
+    if (!Array.isArray(user.DETAIL_ROW.DETAIL_ROW_REG)) {
+        user.DETAIL_ROW.DETAIL_ROW_REG = [];
+    } else {
+        user.DETAIL_ROW.DETAIL_ROW_REG.forEach(reg => {
+            if (reg.CURRENT) reg.CURRENT = false;
+        });
+    }
+    user.DETAIL_ROW.ACTIVED = true;
+    user.DETAIL_ROW.DELETED = false;
+    user.DETAIL_ROW.DETAIL_ROW_REG.push({
+        CURRENT: true,
+        REGDATE: now,
+        REGTIME: now,
+        REGUSER: currentUser
+    });
+    const updated = await user.save();
+    return updated.toObject();
 }
 
 // ==============================
