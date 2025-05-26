@@ -49,7 +49,7 @@ async function RolesCRUD(req) {
           case 'all':
             // Obtener todos los roles (vista enriquecida)
             //────୨ৎ────
-            result = await RolesInfoSchema.find().lean();
+          result = await RolesInfoSchema.find().lean();
             break;
           case 'one':
             // Obtener un solo rol por ROLEID
@@ -67,7 +67,7 @@ async function RolesCRUD(req) {
         }
         break;
 
-      // CREAR NUEVO ROL, OJO se esta creando en ZTEROLES, y no ZTROLES
+      // CREAR NUEVO ROL
       //────୨ৎ────
       case 'post':
         // Validar los privilegios asociados
