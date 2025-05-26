@@ -10,6 +10,7 @@ async function GetAllPricesHistory(req) {
     //cambiarnos a FinancialModelingPrep
     //https://site.financialmodelingprep.com/developer/docs/pricing 
     const url = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${symbol}&apikey=${process.env.ALPHA_VANTAGE_API_KEY}`;
+    //const url = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=IBM&outputsize=full&apikey=demo`;
 
     // Llamada a Alpha Vantage
     const response = await axios.get(url);
@@ -252,6 +253,7 @@ async function SimulateMACrossover(body) {
 
         // Obtener datos históricos
         const url = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${SYMBOL}&outputsize=full&apikey=${process.env.ALPHA_VANTAGE_API_KEY}`;
+        //const url = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=IBM&outputsize=full&apikey=demo`;
         const response = await axios.get(url);
         
         if (!response.data || !response.data['Time Series (Daily)']) {
