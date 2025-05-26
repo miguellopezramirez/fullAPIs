@@ -49,7 +49,7 @@ async function RolesCRUD(req) {
           case 'all':
             // Obtener todos los roles (vista enriquecida)
             //────୨ৎ────
-          result = await RolesInfoSchema.find().lean();
+          result = await RoleSchema.find().lean();
             break;
           case 'one':
             // Obtener un solo rol por ROLEID
