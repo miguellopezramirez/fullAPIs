@@ -57,4 +57,4 @@ RoleSchema.pre('save', function (next) {
 });
 
 
-module.exports = mongoose.model('ZTEROLES', RoleSchema, 'ZTEROLES');
+module.exports = mongoose.model('ZTROLES', RoleSchema, 'ZTROLES');
