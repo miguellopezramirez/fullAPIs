@@ -26,6 +26,7 @@ async function getAllSimulaciones(req) {
                     SYMBOL: 1,
                     SUMMARY: 1,
                     SPECS: 1,
+                    AMOUNT: 1,
                     _id: 0
                 }
             ).lean();
@@ -38,26 +39,25 @@ async function getAllSimulaciones(req) {
     }
 }
 
-async function DeleteMultipleSimulations(userID, simulationIDs) {
-    if (!userID || !simulationIDs?.length) {
-        throw new Error("Se requiere userID y un array de simulationIDs.");
-    }
+/**
+ * Elimina físicamente una simulación de la base de datos por su ID y usuario.
+ */
+async function deleteSimulation(idSimulation, idUser) {
+  if (!idSimulation || !idUser) {
+    throw new Error("Parámetros incompletos: se requiere idSimulation y idUser.");
+  }
 
-    // Eliminar múltiples documentos
-    const result = await ztsimulation.deleteMany({
-        USERID: userID,
-        SIMULATIONID: { $in: simulationIDs }
-    });
+  const deleted = await ztsimulation.findOneAndDelete({ SIMULATIONID: idSimulation, USERID: idUser });
 
-    if (result.deletedCount === 0) {
-        throw new Error("No se encontraron simulaciones para eliminar.");
-    }
+  if (!deleted) {
+    throw new Error("No se encontró la simulación para eliminar.");
+  }
 
-    return {
-        message: `Se eliminaron ${result.deletedCount} simulaciones.`,
-        userID,
-        deletedIDs: simulationIDs
-    };
+  return {
+    message: "Simulación eliminada permanentemente.",
+    idSimulation: deleted.idSimulation,
+    user: deleted.idUser,
+  };
 }
 
 
@@ -67,8 +67,8 @@ const updateSimulationName = async (idSimulation, newName) => {
   }
 
   const updated = await ztsimulation.findOneAndUpdate(
-    { idSimulation },
-    { simulationName: newName },
+    { SIMULATIONID: idSimulation },
+    { SIMULATIONNAME: newName },
     { new: true }
   );
 
@@ -82,6 +82,6 @@ const updateSimulationName = async (idSimulation, newName) => {
 
 module.exports = {
   updateSimulationName,
-  DeleteMultipleSimulations,
+  deleteSimulation,
   getAllSimulaciones
 };
