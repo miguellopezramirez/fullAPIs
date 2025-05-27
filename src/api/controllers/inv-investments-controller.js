@@ -49,13 +49,15 @@ class InvestionsClass extends cds.ApplicationService{
 
         this.on('strategy', async (req) => {
             return servicio.GetAllInvestmentStrategies(req);
-        })
+        });
 
-        this.on('deleteSimulation', async (req) => {
-            const idSimulation = req.req.query?.id;
-            const idUser = req.data?.idUser;
-
-            return await sercivioSimulacion.deleteSimulation(idSimulation, idUser);
+        this.on('deleteSimulations', async (req) => {
+            try {
+                const { userID, simulationIDs } = req.data;
+                return await sercivioSimulacion.DeleteMultipleSimulations(userID, simulationIDs);
+            } catch (error) {
+                req.error(500, error.message);
+            }
         });
 
         // getSimulation
@@ -84,8 +86,7 @@ class InvestionsClass extends cds.ApplicationService{
 
         this.on('symbols', async (req) => {
             try {
-                const symbols = await servicio.GetAllSymbols();
-                return symbols; 
+                return await servicio.GetAllSymbols();
             } catch (error) {
                 throw new Error(`Error al traer los símbolos: ${error.message}`);
             }

@@ -4,6 +4,7 @@ using {inv as myph} from '../models/inv-investments';
 service PricesHistoryRoute @(path:'/api/inv') {
     entity priceshistory as projection on myph.priceshistory;
     entity simulations as projection on myph.SIMULATION;
+    entity symbol as projection on myph.symbols;
     
     @Core.Description:'get-all-prices-history'
     @path : 'pricehistory'
@@ -24,14 +25,13 @@ service PricesHistoryRoute @(path:'/api/inv') {
     action getSimulation(USERID: String, id: String)
     returns array of {};
 
-    @Core.Description:'delete simulation by id and user'
-    @path : 'deleteSimulation'
-    action deleteSimulation(
-        idUser : String
-    )
-    returns String;
+    @Core.Description: 'Elimina múltiples simulaciones por IDs y USERID'
+    @path: 'deleteSimulations'
+    action deleteSimulations(
+        userID : String,
+        simulationIDs : array of String
+    ) returns String;
 
-    //updateSimulation
     @Core.Description: 'Actualizar nombre de simulación por ID'
     @path: 'updatesimulation'
     action updatesimulation(
@@ -40,14 +40,10 @@ service PricesHistoryRoute @(path:'/api/inv') {
     ) returns String;
 
 
-    @Core.Description: 'get-all-symbols'
-    @path: 'symbols'
-    function symbols()
-    returns array of String;
-
-    @Core.Description:'Buscar empresas por símbolo o nombre'
-    @path: 'company'
-    function company(keyword: String) returns array of String;
+    // @Core.Description: 'get-all-symbols'
+    // @path: 'symbols'
+    // function symbols()
+    // returns array of symbol;
     
     @Core.Description:'Calcular SMA (Simple Moving Averages) para SHORT y LONG'
     @path: 'calculateSMA'

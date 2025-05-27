@@ -89,3 +89,12 @@ type DETAIL_ROW_REG {
     REGUSER : String;
 }
 
+entity symbols {
+  key   SYMBOL          : String;
+        NAME            : String;
+        EXCHANGE        : String;
+        ASSETTYPE      : String;
+        IPODATE        : String; 
+        DELISTINGDATE  : String;   
+        STATUS          : String;  
+}

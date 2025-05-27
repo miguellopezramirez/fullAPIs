@@ -3,14 +3,15 @@ require('dotenv').config();
 const ztvalues = require('../models/mongodb/ztvalues');
 const Simulation = require('../models/mongodb/ztsimulation');
 const ztusers = require('../models/mongodb/ztusers');
+const ztsymbols = require('../models/mongodb/ztsymbols');
 
 async function GetAllPricesHistory(req) {
   try {
     const symbol = req.req.query?.symbol || 'AAPL'; // Parámetro dinámico (ej: /pricehistory?symbol=TSLA)
     //cambiarnos a FinancialModelingPrep
     //https://site.financialmodelingprep.com/developer/docs/pricing 
-    const url = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${symbol}&apikey=${process.env.ALPHA_VANTAGE_API_KEY}`;
-    //const url = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=IBM&outputsize=full&apikey=demo`;
+    //const url = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${symbol}&apikey=${process.env.ALPHA_VANTAGE_API_KEY}`;
+    const url = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=IBM&outputsize=full&apikey=demo`;
 
     // Llamada a Alpha Vantage
     const response = await axios.get(url);
@@ -252,8 +253,8 @@ async function SimulateMACrossover(body) {
         }
 
         // Obtener datos históricos
-        const url = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${SYMBOL}&outputsize=full&apikey=${process.env.ALPHA_VANTAGE_API_KEY}`;
-        //const url = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=IBM&outputsize=full&apikey=demo`;
+        //const url = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${SYMBOL}&outputsize=full&apikey=${process.env.ALPHA_VANTAGE_API_KEY}`;
+        const url = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=IBM&outputsize=full&apikey=demo`;
         const response = await axios.get(url);
         
         if (!response.data || !response.data['Time Series (Daily)']) {
@@ -477,16 +478,9 @@ async function GetAllInvestmentStrategies() {
     }
 }
 
+const GetAllSymbols = async () => {
 
-// CERF: Me confundi con los "simbolos" que era necesario traer, no lo borro por si acaso
-async function GetAllSymbols() {
-    try {
-       const symbols = await ZTSIMULATION.distinct('symbol');
-       return symbols;
-   } catch (error) {
-       throw new Error(`Error al obtener los símbolos: ${error.message}`);
-   }
-  }
+};
   
   // CERF: Busca y trae simbolo e informacion de la empresa
   async function GetAllCompanies(req) {
