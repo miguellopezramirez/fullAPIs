@@ -249,46 +249,57 @@ const validarRol = async (roles) => {
 // ==============================
 // FUNCIÓN PRINCIPAL: UsersCRUD
 // ==============================
+
+
+// Lista de privilegios del sistema:
+
+// IdCreate: Permite crear nuevos usuarios.
+
+// IdUpdate: Permite modificar información de usuarios existentes y activar usuarios desactivados.
+
+// IdLogicDelete: Permite desactivar usuarios de forma lógica (eliminada lgica).
+
+// IdHardDelete: Permite eliminar usuarios permanentemente del sistema (eliminada física).
+
+// IdRead: Permite consultar (leer) la información de los usuarios. (no lo deje activo aaun)
+
 async function UsersCRUD(req) {
     try {
         const { procedure, type, userid } = req.req.query;
+        const currentUser = req.req?.query?.RegUser;
         let res;
 
-        switch (procedure) {
-            case 'get':
-                if (type === 'all') {
-                    res = await GetAllUsers();
-                } else if (type === 'one') {
-                    res = await GetOneUser(userid);
-                } else {
-                    throw new Error("Coloca un tipo de búsqueda válido (all o one)");
-                }
-                break;
-
-            case 'post':
-                res = await PostUser(req);
-                break;
-
-            case 'put':
-                res = await UpdateUser(req, userid);
-                break;
-
-            case 'delete':
-                if (type === 'logic') {
-                    res = await LogDelete(userid, req);
-                } else if (type === 'hard') {
-                    res = await HardDelete(userid);
-                } else {
-                    throw new Error("Tipo de borrado inválido (logic o hard)");
-                }
-                break;
-
-            case 'activate': // <--- NUEVO CASO
-                res = await ActivateUser(userid, req);
-                break;
-
-            default:
-                throw new Error('Parámetros inválidos o incompletos');
+        if (procedure === 'post') {
+            await verificarPrivilegio(currentUser, "IdCreate");
+            res = await PostUser(req);
+        } else if (procedure === 'put') {
+            await verificarPrivilegio(currentUser, "IdUpdate");
+            res = await UpdateUser(req, userid);
+        } else if (procedure === 'delete') {
+            if (type === 'logic') {
+                await verificarPrivilegio(currentUser, "IdLogicDelete");
+                res = await LogDelete(userid, req);
+            } else if (type === 'hard') {
+                await verificarPrivilegio(currentUser, "IdHardDelete");
+                res = await HardDelete(userid);
+            } else {
+                throw new Error("Tipo de borrado inválido (logic o hard)");
+            }
+        } else if (procedure === 'activate') {
+            await verificarPrivilegio(currentUser, "IdUpdate");
+            res = await ActivateUser(userid, req);
+        } else if (procedure === 'get') {
+            // Si se ocupa controlar lectura, descomenten esto att echauri:
+            // await verificarPrivilegio(currentUser, "IdRead");
+            if (type === 'all') {
+                res = await GetAllUsers();
+            } else if (type === 'one') {
+                res = await GetOneUser(userid);
+            } else {
+                throw new Error("Coloca un tipo de búsqueda válido (all o one)");
+            }
+        } else {
+            throw new Error('Parámetros inválidos o incompletos');
         }
 
         return res;
@@ -468,3 +479,46 @@ async function HardDelete(userid) {
 
 // Exportar función principal del servicio
 module.exports = { RolesCRUD, UsersCRUD };
+
+/**
+ * Verifica si el usuario tiene el privilegio requerido en cualquiera de sus roles.
+ * @param {String} userId - El USERID del usuario autenticado.
+ * @param {String} privilegeId - El privilegio requerido (como los q puse arriba: "IdCreate", "IdUpdate", "IdLogicDelete", "IdHardDelete").
+ * @throws Error si el usuario no tiene el privilegio.
+ */
+async function verificarPrivilegio(userId, privilegeId) {
+  console.log("Verificando privilegio:", privilegeId, "para usuario:", userId);
+    const user = await UsersSchema.findOne({ USERID: userId }).lean();
+    if (!user) throw new Error("Usuario autenticado no encontrado");
+
+    const roles = user.ROLES || [];
+    if (!roles.length) throw new Error("El usuario no tiene roles asignados");
+
+    const rolesDocs = await RoleSchema.find({ ROLEID: { $in: roles.map(r => r.ROLEID) } }).lean();
+    console.log("Roles encontrados:", rolesDocs);
+
+    // Recorre todos los privilegios de todos los roles
+    let tienePermiso = false;
+    for (const rol of rolesDocs) {
+        for (const priv of (rol.PRIVILEGES || [])) {
+            // priv.PRIVILEGEID por que es un array de araays xd
+            if (Array.isArray(priv.PRIVILEGEID)) {
+                if (priv.PRIVILEGEID.includes("IdAll") || priv.PRIVILEGEID.includes(privilegeId)) {
+                    tienePermiso = true;
+                    break;
+                }
+            } else if (typeof priv.PRIVILEGEID === "string") {
+                if (priv.PRIVILEGEID === "IdAll" || priv.PRIVILEGEID === privilegeId) {
+                    tienePermiso = true;
+                    break;
+                }
+            }
+        }
+        if (tienePermiso) break;
+    }
+    console.log("Tiene permiso:", tienePermiso, "para privilegio:", privilegeId);
+
+    if (!tienePermiso) {
+        throw new Error("No tienes permisos para realizar esta acción (" + privilegeId + ")");
+    }
+}
