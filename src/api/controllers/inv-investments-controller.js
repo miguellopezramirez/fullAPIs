@@ -29,10 +29,16 @@ class InvestionsClass extends cds.ApplicationService{
                 // Switch para manejar diferentes estrategias
                 switch (strategy.toLowerCase()) {
                     case "reversionsimple":
-                        return await reversionSimple(body);
+                        return await servicio.SimulateReversionSimple(body);
+
+                    case "supertrend":
+                        return await servicio.SimulateSupertrend(body);
+
+                    case "momentum":
+                        return await servicio.SimulateMomentum(body);
+
                     case "macrossover":
                         return await servicio.SimulateMACrossover(body);
-
                     default:
                         throw new Error(`Estrategia no reconocida: ${strategy}`);
                 }
