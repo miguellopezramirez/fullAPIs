@@ -391,7 +391,25 @@ async function GetOneUser(userid) {
 async function PostUser(req) {
     const currentUser = req.req?.query?.RegUser || 'SYSTEM';
     const newUser = req.req.body;
-    if (!newUser) throw new Error('No envió los datos del usuario a agregar');
+    console.log("Nuevo usuario a agregar datos del front:", newUser);
+
+    // Validación obligatoria
+    if (!newUser.USERID || !newUser.PASSWORD || !newUser.EMAIL ||
+        newUser.COMPANYID === undefined || !newUser.COMPANYNAME || !newUser.COMPANYALIAS ||
+        !newUser.DEPARTMENTID || !newUser.DEPARTMENT) {
+        throw new Error("Faltan campos obligatorios: Usuario, Contraseña, Email, Compañía o Departamento.");
+    }
+
+    // Opcional: valida nombre y apellido
+    if (!newUser.FIRSTNAME || !newUser.LASTNAME) {
+        throw new Error("Nombre y apellido son obligatorios.");
+    }
+
+    // Opcional: valida formato de email
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newUser.EMAIL)) {
+        throw new Error("El correo electrónico no es válido.");
+    }
+
     newUser.ROLES = await validarRol(newUser.ROLES || []);
     const instance = new UsersSchema(newUser);
     instance._reguser = currentUser;
@@ -478,8 +496,10 @@ async function HardDelete(userid) {
 }
 
 // Exportar función principal del servicio
-module.exports = { RolesCRUD, UsersCRUD };
+module.exports = { RolesCRUD, UsersCRUD, GetAllCompanies, GetDepartmentsByCompany };
 
+
+//FUNCIONES AUXILIARESSSSSSSSSSSSSSSSSSSSSSSSSS
 /**
  * Verifica si el usuario tiene el privilegio requerido en cualquiera de sus roles.
  * @param {String} userId - El USERID del usuario autenticado.
@@ -521,4 +541,37 @@ async function verificarPrivilegio(userId, privilegeId) {
     if (!tienePermiso) {
         throw new Error("No tienes permisos para realizar esta acción (" + privilegeId + ")");
     }
+}
+
+/**
+ * Obtiene todas las compañías donde VALUEPAID esté vacío.
+ * @returns {Promise<Array>} Lista de compañías con VALUEPAID vacío.
+ */
+async function GetAllCompanies() {
+    // Busca documentos donde LABELID sea "IdCompanies" y VALUEPAID esté vacío
+    return await ValueSchema.find({
+        LABELID: "IdCompanies",
+        VALUEPAID: ""
+    }).lean();
+}
+
+/**
+ * companyIdStr debe ser el identificador compuesto, ej: "IdCompanies-IdCocaCola"
+ */
+async function GetDepartmentsByCompany(companyIdStr) {
+    // Busca la compañía para obtener su COMPANYID
+    const company = await ValueSchema.findOne({
+        LABELID: "IdCompanies",
+        VALUEPAID: "",
+        $expr: { $eq: [{ $concat: ["$LABELID", "-", "$VALUEID"] }, companyIdStr] }
+    }).lean();
+
+    if (!company) throw new Error("Compañía no encontrada");
+
+    // Busca departamentos que pertenezcan a esa compañía
+    return await ValueSchema.find({
+        LABELID: "IdDepartaments",
+        VALUEPAID: companyIdStr,
+        COMPANYID: company.COMPANYID
+    }).lean();
 }
