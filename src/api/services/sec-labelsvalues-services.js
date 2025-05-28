@@ -623,7 +623,7 @@ async function logicalLabelValue(req) {
             throw { code: 400, success: false, message: 'Missing required parameters: status, id, or type' };
         }
 
-        const isActivated = status === 'activate';
+        const isActivated = status;
         const updateData = {
             'DETAIL_ROW.ACTIVED': isActivated,
             $push: { 
@@ -654,7 +654,7 @@ async function logicalLabelValue(req) {
                 throw { code: 400, success: false, message: 'Label not found' };
             }
 
-            return { code: 200, success: true, message: `Label ${status}d successfully` };
+            return { code: 200, success: true, message: `Label ${status} successfully` };
         } else {
             // First, update all CURRENT fields to false
             await ztvalues.updateOne(
@@ -673,7 +673,7 @@ async function logicalLabelValue(req) {
                 throw { code: 400, success: false, message: 'Value not found' };
             }
 
-            return { code: 200, success: true, message: `Value ${status}d successfully` };
+            return { code: 200, success: true, message: `Value ${status} successfully` };
         }
     } catch (error) {
         console.error('Error in logicalLabelValue:', error);
