@@ -379,7 +379,7 @@ async function SimulateMACrossover(body) {
         const simulationData = {
             SIMULATIONID: `${SYMBOL}_${new Date().toISOString().replace(/[:.]/g, '-').replace('T', '_')}`,
             USERID,
-            STRATEGY: 'IdCM',
+            STRATEGY: 'MACrossover',
             SIMULATIONNAME: `${SYMBOL}_${new Date().toISOString().replace(/[:.]/g, '-').replace('T', '_')}`,
             SYMBOL,
             STARTDATE,
@@ -465,8 +465,8 @@ async function SimulateSupertrend(req) {
 
 
     const SIMULATIONID = generateSimulationId(SYMBOL);
-    const SIMULATIONNAME = "Estrategia Supertrend + MA";
-    const STRATEGYID = "idST";
+    const SIMULATIONNAME = `${SYMBOL}_${new Date().toISOString().replace(/[:.]/g, '-').replace('T', '_')}`;
+    const STRATEGYID = "Supertrend";
 
 
     //Se buscan los identificadores en SPECS
@@ -721,25 +721,38 @@ async function SimulateSupertrend(req) {
         //const newSimulation = new ztsimulation(simulationData);
         //await newSimulation.save();
 
-    return {
-      SIMULATIONID,
-      USERID,
-      STRATEGYID,
-      SIMULATIONNAME,
-      SYMBOL,
-      INDICATORS: { value: SPECS },
-      AMOUNT: parseFloat(AMOUNT.toFixed(2)),
-      SUMMARY: summary,
-      STARTDATE,
-      ENDDATE,
-      SIGNALS: signals,
-      CHART_DATA: chartData,
-      DETAIL_ROW: detailRow,
+    const simulation = {
+        SIMULATIONID,
+        USERID,
+        STRATEGY: STRATEGYID,
+        SIMULATIONNAME,
+        SYMBOL,
+        INDICATORS: { value: SPECS },
+        AMOUNT: parseFloat(AMOUNT.toFixed(2)),
+        SUMMARY: summary,
+        STARTDATE,
+        ENDDATE,
+        SIGNALS: signals,
+        CHART_DATA: chartData,
+        DETAIL_ROW: {
+            ACTIVED: true,
+            DELETED: false,
+            DETAIL_ROW_REG: [{
+                CURRENT: true,
+                REGDATE: new Date(),
+                REGTIME: new Date().toTimeString().split(' ')[0],
+                REGUSER: USERID
+            }]
+        }
     };
+
+    const newSimulation = new ztsimulation(simulation);
+    await newSimulation.save();
+    return simulation;
   } catch (error) {
-    console.error("Error en simulación de Supertrend + MA:", error);
-    throw error;
-  }
+        console.error("Error en simulación:", error);
+        throw error;
+    }
 }
 
 async function SimulateMomentum(req) {
@@ -755,7 +768,7 @@ async function SimulateMomentum(req) {
    };
    //Datos Estaticos para la respuesta
    const SIMULATIONID = idStrategy(SYMBOL, USERID);
-   const SIMULATIONNAME = "Estrategia de Momentum-"+numR ;
+   const SIMULATIONNAME = `${SYMBOL}_${new Date().toISOString().replace(/[:.]/g, '-').replace('T', '_')}` ;
    const STRATEGYID = "MOM";
    console.log(SIMULATIONID);
    // Validación del body.
@@ -1267,8 +1280,8 @@ async function SimulateReversionSimple(req) {
     };
 
     const SIMULATIONID = generateSimulationId(SYMBOL);
-    const SIMULATIONNAME = "Estrategia de Reversión Simple"; // Nombre de la estrategia
-    const STRATEGYID = "STRATEGY_001"; // Ajustado a "IdCM" según el formato deseado
+    const SIMULATIONNAME = `${SYMBOL}_${new Date().toISOString().replace(/[:.]/g, '-').replace('T', '_')}`; // Nombre de la estrategia
+    const STRATEGYID = "Reversión Simple"; // Ajustado a "IdCM" según el formato deseado
 
     // Extracción de los períodos para RSI y SMA de las especificaciones, con valores por defecto.
     // CORRECCIÓN: Usar 'INDICATOR' en lugar de 'KEY' para encontrar los indicadores.
@@ -1285,7 +1298,7 @@ async function SimulateReversionSimple(req) {
     // Configuración de la API de Alpha Vantage.
     // Asegúrate de tener 'axios' importado en tu entorno (ej. const axios = require('axios'); o import axios from 'axios';)
     const APIKEY = "demo"; // Clave API de demostración, considera usar una clave real y segura para producción.
-    const APIURL = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${SYMBOL}&outputsize=full&apikey=${APIKEY}`;
+    const APIURL = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=IBM&outputsize=full&apikey=demo`;
 
     // Realiza la solicitud HTTP para obtener datos históricos.
     const RESPONSE = await axios.get(APIURL);
@@ -1293,9 +1306,9 @@ async function SimulateReversionSimple(req) {
 
     // Verifica si se obtuvieron datos históricos.
     if (!OPTIONSDATA || Object.keys(OPTIONSDATA).length === 0) {
-      throw new Error(
+    throw new Error(
         "NO SE ENCONTRARON DATOS DE PRECIOS HISTÓRICOS PARA EL SÍMBOLO PROPORCIONADO."
-      );
+    );
     }
 
     // Calcula el número de días de "buffer" necesarios para los cálculos de indicadores.
