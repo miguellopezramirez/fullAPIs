@@ -25,7 +25,7 @@ entity ZTUSERS {
       STATE       : String;
       COUNTRY     : String;
       AVATAR      : String;
-      CAPITAL     : Decimal(15,2);
+      CAPITAL     : String;
       ROLES       : array of {
         ROLEID    : String;
         ROLEIDSAP : String;

@@ -38,7 +38,7 @@ const UsersSchema = new mongoose.Schema({
         STATE: { type: String },
         COUNTRY: { type: String },
         AVATAR: { type: String },
-        CAPITAL: { type: Number},
+        CAPITAL: { type: String},
         ROLES: {
                 type: [{
                         ROLEID: { type: String },
