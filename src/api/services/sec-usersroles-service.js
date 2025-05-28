@@ -380,6 +380,21 @@ async function RolesCRUD(req) {
 
       }
 
+      // ACTIVAR ROL ----------------------------------------------
+      } else if (procedure === 'activate') {
+        if (!roleid) throw new Error('Parametro faltante (RoleID)');
+
+        const updated = await RoleSchema.findOneAndUpdate(
+          { ROLEID: roleid },
+          {
+            $set: { 'DETAIL_ROW.ACTIVED': true, 'DETAIL_ROW.DELETED': false }
+          },
+          { new: true }
+        );
+
+        if (!updated) throw new Error('No existe el rol especificado.');
+        result = updated.toObject();
+
 
       //PUT ----------------------------------------------
     } else if (procedure === 'put') {
