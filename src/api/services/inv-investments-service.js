@@ -624,7 +624,7 @@ async function SimulateSupertrend(req) {
           limit: close + profitDistance,
         };
         currentSignal = "buy";
-        reasoning = "Tendencia alcista identificada.";
+        reasoning = "Tendencia alcista identificada";
         sharesTransacted = shares; // Registrar unidades compradas
       }
       // Lógica de VENTA  (El precio alcanza el nivel objetivo o, el precio cae hasta el nivel del stop-loss o, el precio cierra por debajo de la MA)
@@ -636,10 +636,10 @@ async function SimulateSupertrend(req) {
           realProfit += profitLoss;
           currentSignal = "sell";
           if (close >= position.limit) {
-            reasoning = "Precio objetivo alcanzado.";
+            reasoning = "Precio objetivo alcanzado";
           }
           if (close <= position.stop) {
-            reasoning = "Stop-loss alcanzado.";
+            reasoning = "Stop-loss alcanzado";
           }
           if (trendDown) {
             reasoning = "Precio por debajo de la MA";
@@ -703,28 +703,10 @@ async function SimulateSupertrend(req) {
     };
 
 
-    const detailRow = [
-      {
-        ACTIVED: true,
-        DELETED: false,
-        DETAIL_ROW_REG: [
-          {
-            CURRENT: true,
-            REGDATE: new Date().toISOString().slice(0, 10),
-            REGTIME: new Date().toLocaleTimeString("es-ES", { hour12: false }),
-            REGUSER: USERID,
-          },
-        ],
-      },
-    ];
-
-        //const newSimulation = new ztsimulation(simulationData);
-        //await newSimulation.save();
-
-    return {
+     const simulationData = {
       SIMULATIONID,
       USERID,
-      STRATEGYID,
+      STRATEGY: STRATEGYID,
       SIMULATIONNAME,
       SYMBOL,
       INDICATORS: { value: SPECS },
@@ -734,8 +716,20 @@ async function SimulateSupertrend(req) {
       ENDDATE,
       SIGNALS: signals,
       CHART_DATA: chartData,
-      DETAIL_ROW: detailRow,
-    };
+      DETAIL_ROW: {
+                ACTIVED: true,
+                DELETED: false,
+                DETAIL_ROW_REG: [{
+                    CURRENT: true,
+                    REGDATE: new Date(),
+                    REGTIME: new Date().toTimeString().split(' ')[0],
+                    REGUSER: USERID
+                }]
+            }
+     }
+    const newSimulation = new ztsimulation(simulationData);
+      await newSimulation.save();
+    return simulationData;
   } catch (error) {
     console.error("Error en simulación de Supertrend + MA:", error);
     throw error;
