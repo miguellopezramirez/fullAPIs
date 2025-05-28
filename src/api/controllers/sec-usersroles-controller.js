@@ -1,6 +1,6 @@
 const cds = require('@sap/cds');
 
-const { RolesCRUD, UsersCRUD } = require('../services/sec-usersroles-service');
+const { RolesCRUD, UsersCRUD, GetAllCompanies, GetDepartmentsByCompany } = require('../services/sec-usersroles-service');
 
 
 class SecurityClass extends cds.ApplicationService {
@@ -13,6 +13,18 @@ class SecurityClass extends cds.ApplicationService {
     //CRUD COMPLETO DE ROLES ദ്ദി •⩊• ), para no tener que hacer todo x separado
     this.on('rolesCRUD', async (req) => {
       return RolesCRUD(req);
+    });
+
+
+    //enpoinds cap auxiliares wawa
+
+    this.on('getAllCompanies', async (req) => {
+      return GetAllCompanies();
+    });
+
+    this.on('getDepartmentsByCompany', async (req) => {
+      const { companyIdStr } = req.data;
+      return GetDepartmentsByCompany(companyIdStr);
     });
 
   };

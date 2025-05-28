@@ -63,6 +63,16 @@ service UsersRolesService @(path:'/api/sec/usersroles') {
 // DELETE FÍSICO:
 // DELETE /api/sec/usersroles/usersCRUD?procedure=delete&type=hard&userid=IdUserX
 
+
+//acciones auxiliar para users
+    @Core.Description: 'Obtener todas las compañías'
+    @path: 'getAllCompanies'
+    action getAllCompanies() returns array of Users;
+
+    @Core.Description: 'Obtener departamentos por compañía'
+    @path: 'getDepartmentsByCompany'
+    action getDepartmentsByCompany(companyIdStr: String) returns array of Users;
+
 }
 
 

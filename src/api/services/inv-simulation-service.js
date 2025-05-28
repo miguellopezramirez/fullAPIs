@@ -42,22 +42,26 @@ async function getAllSimulaciones(req) {
 /**
  * Elimina físicamente una simulación de la base de datos por su ID y usuario.
  */
-async function deleteSimulation(idSimulation, idUser) {
-  if (!idSimulation || !idUser) {
-    throw new Error("Parámetros incompletos: se requiere idSimulation y idUser.");
-  }
+async function DeleteMultipleSimulations(userID, simulationIDs) {
+    if (!userID || !simulationIDs?.length) {
+        throw new Error("Se requiere userID y un array de simulationIDs.");
+    }
 
-  const deleted = await ztsimulation.findOneAndDelete({ SIMULATIONID: idSimulation, USERID: idUser });
+    // Eliminar múltiples documentos
+    const result = await ztsimulation.deleteMany({
+        USERID: userID,
+        SIMULATIONID: { $in: simulationIDs }
+    });
 
-  if (!deleted) {
-    throw new Error("No se encontró la simulación para eliminar.");
-  }
+    if (result.deletedCount === 0) {
+        throw new Error("No se encontraron simulaciones para eliminar.");
+    }
 
-  return {
-    message: "Simulación eliminada permanentemente.",
-    idSimulation: deleted.idSimulation,
-    user: deleted.idUser,
-  };
+    return {
+        message: `Se eliminaron ${result.deletedCount} simulaciones.`,
+        userID,
+        deletedIDs: simulationIDs
+    };
 }
 
 
@@ -82,6 +86,6 @@ const updateSimulationName = async (idSimulation, newName) => {
 
 module.exports = {
   updateSimulationName,
-  deleteSimulation,
+  DeleteMultipleSimulations,
   getAllSimulaciones
 };

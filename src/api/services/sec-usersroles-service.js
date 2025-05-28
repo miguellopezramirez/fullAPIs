@@ -3,227 +3,471 @@
 const UsersSchema = require('../models/mongodb/ztusers');
 const RoleSchema = require('../models/mongodb/ztroles');
 const ValueSchema = require('../models/mongodb/ztvalues'); // Modelo para validar proceso
-const RolesInfoSchema = require('../models/mongodb/getRolesModel'); // Vista Roles
-const RolesInfoUsers = require('../models/mongodb/getRolesUsersModel'); // Vista Usuarios por Rol
 
-//────୨ৎ────    
-// Servicio CRUD para Roles
-//────୨ৎ────
+
 async function RolesCRUD(req) {
   try {
-    //────୨ৎ────
-    //Parámetros
-    //────୨ৎ────
     const { procedure, type, roleid } = req.req.query;
-    const currentUser = req.req?.query?.RegUser || 'SYSTEM';
-    const body = req.req.body;
+    console.log('PROCEDURE:', procedure, 'TYPE:', type);
+
     let result;
 
-    // Validación de PRIVILEGIOS -> Validar si los PROCESSID existen
-    //────୨ৎ────
+
+    //FUNCION PARA VALDIAR PROCESSID
     const validarProcessIds = async (privilegios = []) => {
       const processIds = (privilegios || []).map(p =>
         p.PROCESSID.replace('IdProcess-', '').trim()
       );
 
       const procesosValidos = await ValueSchema.find({
-        LABELID: 'IdProcesses',
+        LABELID: "IdProcesses",
         VALUEID: { $in: processIds }
       }).lean();
 
       if (procesosValidos.length !== processIds.length) {
         const encontrados = procesosValidos.map(p => p.VALUEID);
         const faltantes = processIds.filter(id => !encontrados.includes(id));
+
         throw new Error(`No existe el siguiente proceso en la Base de Datos: ${faltantes.join(', ')}`);
       }
     };
 
-    // Switch princpal de Roles
-    //────୨ৎ────
-    switch (procedure) {
 
-      //All roles
-      //────୨ৎ────
-      case 'get':
-        switch (type) {
-          case 'all':
-            // Obtener todos los roles (vista enriquecida)
-            //────୨ৎ────
-          result = await RoleSchema.find().lean();
-            break;
-          case 'one':
-            // Obtener un solo rol por ROLEID
-            //────୨ৎ────
-            result = await RolesInfoSchema.find({ ROLEID: roleid }).lean();
-            break;
-          case 'users':
-            // Obtener usuarios relacionados con un rol, con la otra vista enriquecida
-            //────୨ৎ────
-            const filter = roleid ? { ROLEID: roleid } : {};
-            result = await RolesInfoUsers.find(filter).lean();
-            break;
-          default:
-            throw new Error('Tipo inválido en GET');
+
+    // GET ALL ------------------------------------
+    if (procedure === 'get' && type === 'all') {
+      //por si pasa un IDROLE
+      const matchStage = roleid ? [{ $match: { ROLEID: roleid } }] : [];
+
+      // CONSULTA PARA ROLES
+      const pipelineAll = [
+        ...matchStage,
+        {
+          $unwind: {
+            path: "$PRIVILEGES",
+            preserveNullAndEmptyArrays: true
+          }
+        },
+        {
+          $lookup: {
+            from: "ZTVALUES",
+            let: { pid: "$PRIVILEGES.PROCESSID" },
+            pipeline: [
+              {
+                $match: {
+                  $expr: {
+                    $and: [
+                      { $eq: ["$LABELID", "IdProcesses"] },
+                      {
+                        $eq: [
+                          "$VALUEID",
+                          { $replaceOne: { input: "$$pid", find: "IdProcess-", replacement: "" } }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            ],
+            as: "processInfo"
+          }
+        },
+        {
+          $unwind: {
+            path: "$processInfo",
+            preserveNullAndEmptyArrays: true
+          }
+        },
+        {
+          $set: {
+            PROCESSNAME: "$processInfo.VALUE",
+            VIEWID: "$processInfo.VALUEPAID"
+          }
+        },
+        {
+          $lookup: {
+            from: "ZTVALUES",
+            let: { vid: "$VIEWID" },
+            pipeline: [
+              {
+                $match: {
+                  $expr: {
+                    $and: [
+                      { $eq: ["$LABELID", "IdViews"] },
+                      {
+                        $eq: [
+                          "$VALUEID",
+                          { $replaceOne: { input: "$$vid", find: "IdViews-", replacement: "" } }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            ],
+            as: "viewInfo"
+          }
+        },
+        {
+          $unwind: {
+            path: "$viewInfo",
+            preserveNullAndEmptyArrays: true
+          }
+        },
+        {
+          $set: {
+            VIEWNAME: "$viewInfo.VALUE",
+            APPLICATIONID: "$viewInfo.VALUEPAID"
+          }
+        },
+        {
+          $lookup: {
+            from: "ZTVALUES",
+            let: { aid: "$APPLICATIONID" },
+            pipeline: [
+              {
+                $match: {
+                  $expr: {
+                    $and: [
+                      { $eq: ["$LABELID", "IdApplications"] },
+                      {
+                        $eq: [
+                          "$VALUEID",
+                          { $replaceOne: { input: "$$aid", find: "IdApplications-", replacement: "" } }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            ],
+            as: "appInfo"
+          }
+        },
+        {
+          $unwind: {
+            path: "$appInfo",
+            preserveNullAndEmptyArrays: true
+          }
+        },
+        {
+          $set: {
+            APPLICATIONNAME: "$appInfo.VALUE"
+          }
+        },
+        {
+          $unwind: {
+            path: "$PRIVILEGES.PRIVILEGEID",
+            preserveNullAndEmptyArrays: true
+          }
+        },
+        {
+          $lookup: {
+            from: "ZTVALUES",
+            let: { prid: "$PRIVILEGES.PRIVILEGEID" },
+            pipeline: [
+              {
+                $match: {
+                  $expr: {
+                    $and: [
+                      { $eq: ["$LABELID", "IdPrivileges"] },
+                      { $eq: ["$VALUEID", "$$prid"] }
+                    ]
+                  }
+                }
+              }
+            ],
+            as: "privInfo"
+          }
+        },
+        {
+          $unwind: {
+            path: "$privInfo",
+            preserveNullAndEmptyArrays: true
+          }
+        },
+        {
+          $group: {
+            _id: {
+              ROLEID: "$ROLEID",
+              ROLENAME: "$ROLENAME",
+              DESCRIPTION: "$DESCRIPTION",
+              PROCESSID: "$processInfo.VALUEID",
+              PROCESSNAME: "$PROCESSNAME",
+              VIEWID: "$viewInfo.VALUEID",
+              VIEWNAME: "$VIEWNAME",
+              APPLICATIONID: "$appInfo.VALUEID",
+              APPLICATIONNAME: "$appInfo.VALUE"
+            },
+            PRIVILEGES: {
+              $push: {
+                PRIVILEGEID: "$PRIVILEGES.PRIVILEGEID",
+                PRIVILEGENAME: "$privInfo.VALUE"
+              }
+            },
+            DETAIL_ROW: { $first: "$DETAIL_ROW" }
+          }
+        },
+        {
+          $group: {
+            _id: {
+              ROLEID: "$_id.ROLEID",
+              ROLENAME: "$_id.ROLENAME",
+              DESCRIPTION: "$_id.DESCRIPTION"
+            },
+            PROCESSES: {
+              $push: {
+                PROCESSID: "$_id.PROCESSID",
+                PROCESSNAME: "$_id.PROCESSNAME",
+                VIEWID: "$_id.VIEWID",
+                VIEWNAME: "$_id.VIEWNAME",
+                APPLICATIONID: "$_id.APPLICATIONID",
+                APPLICATIONNAME: "$_id.APPLICATIONNAME",
+                PRIVILEGES: "$PRIVILEGES"
+              }
+            },
+            DETAIL_ROW: { $first: "$DETAIL_ROW" }
+          }
+        },
+        {
+          $lookup: {
+            from: "ZTUSERS",
+            let: { roleId: "$_id.ROLEID" },
+            pipeline: [
+              {
+                $match: {
+                  $expr: {
+                    $in: ["$$roleId", "$ROLES.ROLEID"]
+                  }
+                }
+              },
+              {
+                $project: {
+                  _id: 0,
+                  USERID: 1,
+                  USERNAME: 1,
+                  COMPANYNAME: 1,
+                  DEPARTMENT: 1,
+                  EMPLOYEEID: 1
+                }
+              }
+            ],
+            as: "USERS"
+          }
+        },
+        {
+          $project: {
+            _id: 0,
+            ROLEID: "$_id.ROLEID",
+            ROLENAME: "$_id.ROLENAME",
+            DESCRIPTION: "$_id.DESCRIPTION",
+            PROCESSES: {
+              $filter: {
+                input: "$PROCESSES",
+                as: "proc",
+                cond: { $ne: ["$$proc.PROCESSID", null] }
+              }
+            },
+            USERS: 1,
+            DETAIL_ROW: 1
+          }
         }
-        break;
+      ];
 
-      // CREAR NUEVO ROL
-      //────୨ৎ────
-      case 'post':
-        // Validar los privilegios asociados
-        //────୨ৎ────
-        await validarProcessIds(body.PRIVILEGES);
 
-        // Crear nueva instancia del modelo y registrar el usuario
-        //────୨ৎ────
-        const instance = new RoleSchema(body);
-        instance._reguser = currentUser;
+      result = await RoleSchema.aggregate(pipelineAll);
 
-        const nuevoRol = await instance.save();
-        result = nuevoRol.toObject();
-        break;
 
-      // ACTUALIZAR ROL EXISTENTE
-      //────୨ৎ────
-      case 'put':
+      // GET CON USERS ----------------------------------
+    } else if (procedure === 'get' && type === 'users') {
+      //por si pasa un IDROLE
+      const matchStage = roleid ? [{ $match: { ROLEID: roleid } }] : [];
+
+      // CONSULTA PARA ROLES-USUARIOS
+      const pipelineUsers = [
+        ...matchStage,
+        {
+          $lookup: {
+            from: "ZTUSERS",
+            let: {
+              roleId: "$ROLEID"
+            },
+            pipeline: [
+              {
+                $match: {
+                  $expr: {
+                    $in: ["$$roleId", "$ROLES.ROLEID"]
+                  }
+                }
+              },
+              {
+                $project: {
+                  _id: 0,
+                  USERID: 1,
+                  USERNAME: 1,
+                  COMPANYNAME: 1,
+                  DEPARTMENT: 1,
+                  EMPLOYEEID: 1
+                }
+              }
+            ],
+            as: "USERS"
+          }
+        },
+        {
+          $project: {
+            _id: 0,
+            ROLEID: 1,
+            ROLENAME: 1,
+            DESCRIPTION: 1,
+            USERS: 1,
+            DETAIL_ROW: 1
+          }
+        }
+      ]
+
+      result = await RoleSchema.aggregate(pipelineUsers);
+
+
+      // POST -------------------------------------
+    } else if (req.req.query.procedure === 'post') {
+
+      const nuevoRol = req.req.body;
+      // Validar que ya no exista un ROLEID igual
+      const existente = await RoleSchema.findOne({ ROLEID: nuevoRol.ROLEID });
+      if (existente) {
+        throw new Error(`Ya existe un rol con el ROLEID: ${nuevoRol.ROLEID}`);
+      }
+
+      await validarProcessIds(nuevoRol.PRIVILEGES);
+
+      const nuevoRolito = await RoleSchema.create(nuevoRol);
+      result = nuevoRolito.toObject();
+
+      // DELETE ----------------------------
+    } else if (procedure === 'delete') {
+      if (!roleid) throw new Error('Parametro faltante (RoleID)');
+
+
+      //DELETE LOGICO
+      if (type === 'logic') {
+
+        updated = await RoleSchema.findOneAndUpdate(
+          { ROLEID: roleid },
+          {
+            $set: { 'DETAIL_ROW.ACTIVED': false, 'DETAIL_ROW.DELETED': true }
+          },
+          { new: true }
+        );
+
+        if (!updated) throw new Error('No existe el rol especificado.');
+        result = updated.toObject();
+
+        console.log('Rol desactivado');
+
+
+
+        //DELETE FISICO
+      } else if (type === 'hard') {
+
+        const deleted = await RoleSchema.deleteOne({ ROLEID: roleid });
+
+        if (deleted.deletedCount === 0) {
+          throw new Error('No existe el rol especificado.');
+        }
+
+        result = { message: 'Rol eliminado.' };
+
+      }
+
+      // ACTIVAR ROL ----------------------------------------------
+      } else if (procedure === 'activate') {
         if (!roleid) throw new Error('Parametro faltante (RoleID)');
-        const updateData = body;
-        if (!updateData || Object.keys(updateData).length === 0) {
-          throw new Error('No se proporcionan campos para actualizar');
+
+        const updated = await RoleSchema.findOneAndUpdate(
+          { ROLEID: roleid },
+          {
+            $set: { 'DETAIL_ROW.ACTIVED': true, 'DETAIL_ROW.DELETED': false }
+          },
+          { new: true }
+        );
+
+        if (!updated) throw new Error('No existe el rol especificado.');
+        result = updated.toObject();
+
+
+      //PUT ----------------------------------------------
+    } else if (procedure === 'put') {
+      if (!roleid) throw new Error('Parametro faltante (RoleID)');
+
+      const camposActualizar = req.req.body;
+
+      if (!camposActualizar || Object.keys(camposActualizar).length === 0) {
+        throw new Error('No se proporcionan campos para actualizar');
+      }
+
+      // Validar que no se cambie el ROLEID a uno duplicado
+      if (camposActualizar.ROLEID && camposActualizar.ROLEID !== roleid) {
+        const yaExiste = await RoleSchema.findOne({ ROLEID: camposActualizar.ROLEID });
+        if (yaExiste) {
+          throw new Error(`Ya existe un rol con el ROLEID: ${camposActualizar.ROLEID}`);
         }
+      }
 
-        const roleToUpdate = await RoleSchema.findOne({ ROLEID: roleid });
-        if (!roleToUpdate) throw new Error('El rol a actualizar no existe');
+      //SI HAY PRIVILEGIOS A ACTUALIZAR SE LLAMA LA FUNCION PARA VALIDAR ESA COSA
+      if (camposActualizar.PRIVILEGES) {
+        await validarProcessIds(camposActualizar.PRIVILEGES);
+      }
 
-        // Validar privilegios si se actualizan
-        if (updateData.PRIVILEGES) {
-          await validarProcessIds(updateData.PRIVILEGES);
-        }
+      const existing = await RoleSchema.findOne({ ROLEID: roleid });
+      if (!existing) throw new Error('No se encontró el rol para actualizar');
 
-        // Historial de modificación (DETAIL_ROW)
-        const nowPut = new Date();
-        if (!roleToUpdate.DETAIL_ROW) {
-          roleToUpdate.DETAIL_ROW = { ACTIVED: true, DELETED: false, DETAIL_ROW_REG: [] };
-        }
 
-        if (Array.isArray(roleToUpdate.DETAIL_ROW.DETAIL_ROW_REG)) {
-          roleToUpdate.DETAIL_ROW.DETAIL_ROW_REG.forEach(reg => {
-            if (reg.CURRENT) reg.CURRENT = false;
-          });
-        } else {
-          roleToUpdate.DETAIL_ROW.DETAIL_ROW_REG = [];
-        }
+      // Actualizar campos manualmente
+      if (camposActualizar.ROLEID) existing.ROLEID = camposActualizar.ROLEID;
+      if (camposActualizar.ROLENAME) existing.ROLENAME = camposActualizar.ROLENAME;
+      if (camposActualizar.DESCRIPTION) existing.DESCRIPTION = camposActualizar.DESCRIPTION;
+      if (Array.isArray(camposActualizar.PRIVILEGES)) existing.PRIVILEGES = camposActualizar.PRIVILEGES;
 
-        roleToUpdate.DETAIL_ROW.DETAIL_ROW_REG.push({
-          CURRENT: true,
-          REGDATE: nowPut,
-          REGTIME: nowPut,
-          REGUSER: currentUser
+
+      // Actualizar el registro de la actualización
+      const now = new Date();
+      const reguser = req.req.user?.USERNAME || 'SYSTEM';
+
+      // Marcar registros anteriores como no actuales
+      if (Array.isArray(existing.DETAIL_ROW.DETAIL_ROW_REG)) {
+        existing.DETAIL_ROW.DETAIL_ROW_REG.forEach(reg => {
+          reg.CURRENT = false;
         });
+      } else {
+        existing.DETAIL_ROW.DETAIL_ROW_REG = [];
+      }
 
-        // Aplicar cambios
-        Object.assign(roleToUpdate, updateData);
-        const updatedRole = await roleToUpdate.save();
-        result = updatedRole.toObject();
-        break;
+      // Agregar nuevo registro
+      existing.DETAIL_ROW.DETAIL_ROW_REG.push({
+        CURRENT: true,
+        REGDATE: now,
+        REGTIME: now,
+        REGUSER: reguser
+      });
 
-      // ELIMINAR ROL (Lógica o Física)
-      case 'delete':
-        if (!roleid) throw new Error('Parametro faltante (RoleID)');
+      // Guardar con validaciones y middleware
+      const updated = await existing.save();
+      result = updated.toObject();
 
-        switch (type) {
-          case 'logic':
-            // Eliminación lógica (se marca como inactivo y eliminado)
-            const roleToLogicDelete = await RoleSchema.findOne({ ROLEID: roleid });
-            if (!roleToLogicDelete) throw new Error('No se encontró ningún rol');
-
-            const nowDel = new Date();
-            if (!roleToLogicDelete.DETAIL_ROW) {
-              roleToLogicDelete.DETAIL_ROW = { ACTIVED: true, DELETED: false, DETAIL_ROW_REG: [] };
-            }
-
-            if (Array.isArray(roleToLogicDelete.DETAIL_ROW.DETAIL_ROW_REG)) {
-              roleToLogicDelete.DETAIL_ROW.DETAIL_ROW_REG.forEach(reg => {
-                if (reg.CURRENT) reg.CURRENT = false;
-              });
-            } else {
-              roleToLogicDelete.DETAIL_ROW.DETAIL_ROW_REG = [];
-            }
-
-            roleToLogicDelete.DETAIL_ROW.ACTIVED = false;
-            roleToLogicDelete.DETAIL_ROW.DELETED = true;
-            roleToLogicDelete.DETAIL_ROW.DETAIL_ROW_REG.push({
-              CURRENT: true,
-              REGDATE: nowDel,
-              REGTIME: nowDel,
-              REGUSER: currentUser
-            });
-
-            const logicDeleted = await roleToLogicDelete.save();
-            result = logicDeleted.toObject();
-            break;
-
-          case 'hard':
-            // Eliminación física (borrado de la base de datos)
-            const hardDeleted = await RoleSchema.deleteOne({ ROLEID: roleid });
-            if (hardDeleted.deletedCount === 0) {
-              throw new Error('No existe el rol especificado.');
-            }
-            result = { message: 'Rol eliminado.' };
-            break;
-
-          default:
-            throw new Error('Tipo inválido en DELETE');
-        }
-        break;
-
-        // ACTIVAR ROL
-//────୨ৎ────
-case 'activate':
-  if (!roleid) throw new Error('Parametro faltante (RoleID)');
-
-  const roleToActivate = await RoleSchema.findOne({ ROLEID: roleid });
-  if (!roleToActivate) throw new Error('No se encontró ningún rol');
-
-  const nowActivate = new Date();
-  if (!roleToActivate.DETAIL_ROW) {
-    roleToActivate.DETAIL_ROW = { ACTIVED: false, DELETED: true, DETAIL_ROW_REG: [] };
-  }
-
-  if (Array.isArray(roleToActivate.DETAIL_ROW.DETAIL_ROW_REG)) {
-    roleToActivate.DETAIL_ROW.DETAIL_ROW_REG.forEach(reg => {
-      if (reg.CURRENT) reg.CURRENT = false;
-    });
-  } else {
-    roleToActivate.DETAIL_ROW.DETAIL_ROW_REG = [];
-  }
-
-  roleToActivate.DETAIL_ROW.ACTIVED = true;
-  roleToActivate.DETAIL_ROW.DELETED = false;
-  roleToActivate.DETAIL_ROW.DETAIL_ROW_REG.push({
-    CURRENT: true,
-    REGDATE: nowActivate,
-    REGTIME: nowActivate,
-    REGUSER: currentUser
-  });
-
-  const activatedRole = await roleToActivate.save();
-  result = activatedRole.toObject();
-  break;
-
-
-      //Default si no es ningun procedure o es invalido
-      //────୨ৎ────
-      default:
-        throw new Error('Parámetro "procedure" inválido o no especificado');
+    } else {
+      console.log('No coincide ningún procedimiento');
+      throw new Error('Parámetros inválidos o incompletos');
     }
 
-    // Retornar resultado final
+
     return JSON.parse(JSON.stringify(result));
+
   } catch (error) {
     console.error('Error en RolesCRUD:', error);
-    return { error: true, message: error.message };
+    req.reject(400, error.message);
   }
+
 }
 
 // ==============================
@@ -391,7 +635,25 @@ async function GetOneUser(userid) {
 async function PostUser(req) {
     const currentUser = req.req?.query?.RegUser || 'SYSTEM';
     const newUser = req.req.body;
-    if (!newUser) throw new Error('No envió los datos del usuario a agregar');
+    console.log("Nuevo usuario a agregar datos del front:", newUser);
+
+    // Validación obligatoria
+    if (!newUser.USERID || !newUser.PASSWORD || !newUser.EMAIL ||
+        newUser.COMPANYID === undefined || !newUser.COMPANYNAME || !newUser.COMPANYALIAS ||
+        !newUser.DEPARTMENTID || !newUser.DEPARTMENT) {
+        throw new Error("Faltan campos obligatorios: Usuario, Contraseña, Email, Compañía o Departamento.");
+    }
+
+    // Opcional: valida nombre y apellido
+    if (!newUser.FIRSTNAME || !newUser.LASTNAME) {
+        throw new Error("Nombre y apellido son obligatorios.");
+    }
+
+    // Opcional: valida formato de email
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newUser.EMAIL)) {
+        throw new Error("El correo electrónico no es válido.");
+    }
+
     newUser.ROLES = await validarRol(newUser.ROLES || []);
     const instance = new UsersSchema(newUser);
     instance._reguser = currentUser;
@@ -478,8 +740,10 @@ async function HardDelete(userid) {
 }
 
 // Exportar función principal del servicio
-module.exports = { RolesCRUD, UsersCRUD };
+module.exports = { RolesCRUD, UsersCRUD, GetAllCompanies, GetDepartmentsByCompany };
 
+
+//FUNCIONES AUXILIARESSSSSSSSSSSSSSSSSSSSSSSSSS
 /**
  * Verifica si el usuario tiene el privilegio requerido en cualquiera de sus roles.
  * @param {String} userId - El USERID del usuario autenticado.
@@ -521,4 +785,37 @@ async function verificarPrivilegio(userId, privilegeId) {
     if (!tienePermiso) {
         throw new Error("No tienes permisos para realizar esta acción (" + privilegeId + ")");
     }
+}
+
+/**
+ * Obtiene todas las compañías donde VALUEPAID esté vacío.
+ * @returns {Promise<Array>} Lista de compañías con VALUEPAID vacío.
+ */
+async function GetAllCompanies() {
+    // Busca documentos donde LABELID sea "IdCompanies" y VALUEPAID esté vacío
+    return await ValueSchema.find({
+        LABELID: "IdCompanies",
+        VALUEPAID: ""
+    }).lean();
+}
+
+/**
+ * companyIdStr debe ser el identificador compuesto, ej: "IdCompanies-IdCocaCola"
+ */
+async function GetDepartmentsByCompany(companyIdStr) {
+    // Busca la compañía para obtener su COMPANYID
+    const company = await ValueSchema.findOne({
+        LABELID: "IdCompanies",
+        VALUEPAID: "",
+        $expr: { $eq: [{ $concat: ["$LABELID", "-", "$VALUEID"] }, companyIdStr] }
+    }).lean();
+
+    if (!company) throw new Error("Compañía no encontrada");
+
+    // Busca departamentos que pertenezcan a esa compañía
+    return await ValueSchema.find({
+        LABELID: "IdDepartaments",
+        VALUEPAID: companyIdStr,
+        COMPANYID: company.COMPANYID
+    }).lean();
 }
