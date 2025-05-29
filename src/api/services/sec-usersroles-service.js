@@ -655,6 +655,7 @@ async function PostUser(req) {
     }
 
     newUser.ROLES = await validarRol(newUser.ROLES || []);
+    newUser.CAPITAL = "100";
     const instance = new UsersSchema(newUser);
     instance._reguser = currentUser;
     const validUser = await instance.save();
