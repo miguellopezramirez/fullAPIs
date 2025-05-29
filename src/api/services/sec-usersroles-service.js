@@ -751,6 +751,8 @@ module.exports = { RolesCRUD, UsersCRUD, GetAllCompanies, GetDepartmentsByCompan
  * @param {String} privilegeId - El privilegio requerido (como los q puse arriba: "IdCreate", "IdUpdate", "IdLogicDelete", "IdHardDelete").
  * @throws Error si el usuario no tiene el privilegio.
  */
+
+
 async function verificarPrivilegio(userId, privilegeId) {
   console.log("Verificando privilegio:", privilegeId, "para usuario:", userId);
     const user = await UsersSchema.findOne({ USERID: userId }).lean();
@@ -761,6 +763,7 @@ async function verificarPrivilegio(userId, privilegeId) {
 
     const rolesDocs = await RoleSchema.find({ ROLEID: { $in: roles.map(r => r.ROLEID) } }).lean();
     console.log("Roles encontrados:", rolesDocs);
+    console.log("Roles del usuario:", roles);
 
     // Recorre todos los privilegios de todos los roles
     let tienePermiso = false;
