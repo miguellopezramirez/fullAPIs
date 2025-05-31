@@ -461,11 +461,13 @@ async function deleteLabel(id, mode, reguser) {
 
         if (mode === 'physical') {
             await ztlabels.deleteOne({ LABELID: id });
+            await ztvalues.deleteMany({ LABELID: id });
             return {
                 code: 200,
                 message: "Label borrado físicamente exitosamente",
                 deletedLabel: label
             };
+            
         }
 
         // Borrado lógico
