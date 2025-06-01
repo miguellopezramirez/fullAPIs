@@ -640,7 +640,7 @@ async function PostUser(req) {
     // Validación obligatoria
     if (!newUser.USERID || !newUser.PASSWORD || !newUser.EMAIL ||
         newUser.COMPANYID === undefined || !newUser.COMPANYNAME || !newUser.COMPANYALIAS ||
-        !newUser.DEPARTMENTID || !newUser.DEPARTMENT) {
+        !newUser.DEPARTMENT) { // <-- ELIMINA !newUser.DEPARTMENTID
         throw new Error("Faltan campos obligatorios: Usuario, Contraseña, Email, Compañía o Departamento.");
     }
 
@@ -741,7 +741,7 @@ async function HardDelete(userid) {
 }
 
 // Exportar función principal del servicio
-module.exports = { RolesCRUD, UsersCRUD, GetAllCompanies, GetDepartmentsByCompany };
+module.exports = { RolesCRUD, UsersCRUD, GetAllCompanies, GetDepartmentsByCompany, GetCompaniesWithCedisAndDepartments };
 
 
 //FUNCIONES AUXILIARESSSSSSSSSSSSSSSSSSSSSSSSSS
@@ -754,12 +754,18 @@ module.exports = { RolesCRUD, UsersCRUD, GetAllCompanies, GetDepartmentsByCompan
 
 
 async function verificarPrivilegio(userId, privilegeId) {
-  console.log("Verificando privilegio:", privilegeId, "para usuario:", userId);
+    console.log("Verificando privilegio:", privilegeId, "para usuario:", userId);
     const user = await UsersSchema.findOne({ USERID: userId }).lean();
     if (!user) throw new Error("Usuario autenticado no encontrado");
 
     const roles = user.ROLES || [];
     if (!roles.length) throw new Error("El usuario no tiene roles asignados");
+
+    // Si tiene ROLE_ALL, puede hacer todo
+    if (roles.some(r => r.ROLEID === "ROLE_ALL")) {
+        console.log("Usuario con ROLE_ALL, acceso total");
+        return true;
+    }
 
     const rolesDocs = await RoleSchema.find({ ROLEID: { $in: roles.map(r => r.ROLEID) } }).lean();
     console.log("Roles encontrados:", rolesDocs);
@@ -823,3 +829,111 @@ async function GetDepartmentsByCompany(companyIdStr) {
         COMPANYID: company.COMPANYID
     }).lean();
 }
+
+/**
+ * Devuelve todas las compañías, cada una con sus CEDIs y departamentos agrupados.
+ */
+async function GetCompaniesWithCedisAndDepartments() {
+    // 1. Obtener todas las compañías activas
+    const companies = await ValueSchema.find({
+        LABELID: "IdCompanies",
+        VALUEPAID: "",
+        "DETAIL_ROW.ACTIVED": true,
+        "DETAIL_ROW.DELETED": false
+    }).lean();
+
+    // 2. Para cada compañía, buscar sus departamentos y agrupar por CEDIID
+    const result = [];
+    for (const company of companies) {
+        // Buscar departamentos activos de la compañía
+        const departments = await ValueSchema.find({
+            LABELID: "IdDepartaments",
+            VALUEPAID: `IdCompanies-${company.VALUEID}`,
+            COMPANYID: company.COMPANYID,
+            "DETAIL_ROW.ACTIVED": true,
+            "DETAIL_ROW.DELETED": false
+        }).lean();
+
+        // Agrupar departamentos por CEDIID y poner el LABEL
+        const cedisMap = {};
+        for (const dept of departments) {
+            if (!cedisMap[dept.CEDIID]) {
+                cedisMap[dept.CEDIID] = {
+                    CEDIID: dept.CEDIID,
+                    CEDIIDLABEL: dept.CEDIIDLABEL,
+                    DEPARTAMENTOS: []
+                };
+            }
+            cedisMap[dept.CEDIID].DEPARTAMENTOS.push({
+                _id: dept._id,
+                VALUEID: dept.VALUEID,
+                VALUE: dept.VALUE,
+                ALIAS: dept.ALIAS,
+                DESCRIPTION: dept.DESCRIPTION,
+                IMAGE: dept.IMAGE,
+                // agrega aquí más campos si los necesitas
+            });
+        }
+
+        // Formatear la estructura de salida
+        const cedis = Object.values(cedisMap);
+
+        result.push({
+            COMPANYID: company.COMPANYID,
+            VALUEID: company.VALUEID,
+            VALUE: company.VALUE,
+            CEDIS: cedis
+        });
+    }
+    return result;
+}
+
+/**
+ * Devuelve los CEDIS y departamentos de una compañía específica.
+ * @param {String} companyIdStr - Ejemplo: "IdCompanies-IdCocaCola"
+ */
+async function GetCedisAndDepartmentsByCompany(companyIdStr) {
+    // Buscar la compañía
+    const company = await ValueSchema.findOne({
+        LABELID: "IdCompanies",
+        VALUEPAID: "",
+        $expr: { $eq: [{ $concat: ["$LABELID", "-", "$VALUEID"] }, companyIdStr] }
+    }).lean();
+
+    if (!company) throw new Error("Compañía no encontrada");
+
+    // Buscar departamentos de la compañía
+    const departments = await ValueSchema.find({
+        LABELID: "IdDepartaments",
+        VALUEPAID: companyIdStr,
+        COMPANYID: company.COMPANYID
+    }).lean();
+
+    // Agrupar departamentos por CEDIID
+    const cedisMap = {};
+    for (const dept of departments) {
+        if (!cedisMap[dept.CEDIID]) cedisMap[dept.CEDIID] = [];
+        cedisMap[dept.CEDIID].push(dept);
+    }
+
+    // Formatear la estructura de salida
+    const cedis = Object.entries(cedisMap).map(([CEDIID, DEPARTAMENTOS]) => ({
+        CEDIID,
+        DEPARTAMENTOS
+    }));
+
+    return {
+        ...company,
+        CEDIS: cedis
+    };
+}
+
+// Exporta la función
+module.exports = {
+    RolesCRUD,
+    UsersCRUD,
+    GetAllCompanies,
+    GetDepartmentsByCompany,
+    GetCompaniesWithCedisAndDepartments,
+    GetCedisAndDepartmentsByCompany // <-- Agregado aquí
+};

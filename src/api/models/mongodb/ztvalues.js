@@ -5,6 +5,7 @@ const mongoose = require('mongoose');
 const ztvalues = new mongoose.Schema({
     COMPANYID: { type: Number },
     CEDIID: { type: Number },
+    CEDIIDLABEL: { type: String, required: true },
     LABELID: { type: String, required: true },
     VALUEPAID: { type: String }, // valor padre (opcional)
     VALUEID: { type: String, required: true },

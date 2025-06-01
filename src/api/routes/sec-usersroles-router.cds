@@ -73,6 +73,14 @@ service UsersRolesService @(path:'/api/sec/usersroles') {
     @path: 'getDepartmentsByCompany'
     action getDepartmentsByCompany(companyIdStr: String) returns array of Users;
 
+  @Core.Description: 'Obtener CEDIS y departamentos por compañía'
+    @path: 'getCedisAndDepartmentsByCompany'
+    action getCedisAndDepartmentsByCompany(companyIdStr: String) returns Users;
+//este es el bueno, el que trae CEDIS y departamentos por compañia
+  
+    @Core.Description: 'Obtener compañías con CEDIs y departamentos'
+    @path: 'getCompaniesWithCedisAndDepartments'
+    action getCompaniesWithCedisAndDepartments() returns array of Users;
 }
 
 

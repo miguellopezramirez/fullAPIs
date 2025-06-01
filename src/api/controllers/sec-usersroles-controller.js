@@ -1,6 +1,6 @@
 const cds = require('@sap/cds');
 
-const { RolesCRUD, UsersCRUD, GetAllCompanies, GetDepartmentsByCompany } = require('../services/sec-usersroles-service');
+const { RolesCRUD, UsersCRUD, GetAllCompanies, GetDepartmentsByCompany, GetCompaniesWithCedisAndDepartments } = require('../services/sec-usersroles-service');
 
 
 class SecurityClass extends cds.ApplicationService {
@@ -27,9 +27,10 @@ class SecurityClass extends cds.ApplicationService {
       return GetDepartmentsByCompany(companyIdStr);
     });
 
-  };
+    this.on('getCompaniesWithCedisAndDepartments', async (req) => {
+      return GetCompaniesWithCedisAndDepartments();
+    });
 
-
-  
+  }
 };
 module.exports = SecurityClass;

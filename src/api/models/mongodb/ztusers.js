@@ -26,6 +26,7 @@ const UsersSchema = new mongoose.Schema({
         COMPANYNAME: { type: String },
         COMPANYALIAS: { type: String },
         CEDIID: { type: String },
+        CEDIIDLABEL: { type: String },
         EMPLOYEEID: { type: Number },
         PHONENUMBER: { type: String },
         EXTENSION: { type: String },
