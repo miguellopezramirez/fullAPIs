@@ -397,65 +397,69 @@ async function RolesCRUD(req) {
 
 
       //PUT ----------------------------------------------
-    } else if (procedure === 'put') {
-      if (!roleid) throw new Error('Parametro faltante (RoleID)');
+    } // ...existing code...
+else if (procedure === 'put') {
+  if (!roleid) throw new Error('Parametro faltante (RoleID)');
 
-      const camposActualizar = req.req.body;
+  const camposActualizar = req.req.body;
 
-      if (!camposActualizar || Object.keys(camposActualizar).length === 0) {
-        throw new Error('No se proporcionan campos para actualizar');
-      }
+  if (!camposActualizar || Object.keys(camposActualizar).length === 0) {
+    throw new Error('No se proporcionan campos para actualizar');
+  }
 
-      // Validar que no se cambie el ROLEID a uno duplicado
-      if (camposActualizar.ROLEID && camposActualizar.ROLEID !== roleid) {
-        const yaExiste = await RoleSchema.findOne({ ROLEID: camposActualizar.ROLEID });
-        if (yaExiste) {
-          throw new Error(`Ya existe un rol con el ROLEID: ${camposActualizar.ROLEID}`);
-        }
-      }
+  // Validar que no se cambie el ROLEID a uno duplicado
+  if (camposActualizar.ROLEID && camposActualizar.ROLEID !== roleid) {
+    const yaExiste = await RoleSchema.findOne({ ROLEID: camposActualizar.ROLEID });
+    if (yaExiste) {
+      throw new Error(`Ya existe un rol con el ROLEID: ${camposActualizar.ROLEID}`);
+    }
+  }
 
-      //SI HAY PRIVILEGIOS A ACTUALIZAR SE LLAMA LA FUNCION PARA VALIDAR ESA COSA
-      if (camposActualizar.PRIVILEGES) {
-        await validarProcessIds(camposActualizar.PRIVILEGES);
-      }
+  // Validar privilegios si existen
+  if (camposActualizar.PRIVILEGES) {
+    await validarProcessIds(camposActualizar.PRIVILEGES);
+  }
 
-      const existing = await RoleSchema.findOne({ ROLEID: roleid });
-      if (!existing) throw new Error('No se encontró el rol para actualizar');
+  const existing = await RoleSchema.findOne({ ROLEID: roleid });
+  if (!existing) throw new Error('No se encontró el rol para actualizar');
 
+  // Actualizar campos
+  existing.ROLENAME = camposActualizar.ROLENAME || existing.ROLENAME;
+  existing.DESCRIPTION = camposActualizar.DESCRIPTION || existing.DESCRIPTION;
+  if (Array.isArray(camposActualizar.PRIVILEGES)) existing.PRIVILEGES = camposActualizar.PRIVILEGES;
 
-      // Actualizar campos manualmente
-      if (camposActualizar.ROLEID) existing.ROLEID = camposActualizar.ROLEID;
-      if (camposActualizar.ROLENAME) existing.ROLENAME = camposActualizar.ROLENAME;
-      if (camposActualizar.DESCRIPTION) existing.DESCRIPTION = camposActualizar.DESCRIPTION;
-      if (Array.isArray(camposActualizar.PRIVILEGES)) existing.PRIVILEGES = camposActualizar.PRIVILEGES;
+  // Actualizar registro de auditoría
+  const now = new Date();
+  const reguser = req.req.user?.USERNAME || 'SYSTEM';
 
+  if (Array.isArray(existing.DETAIL_ROW.DETAIL_ROW_REG)) {
+    existing.DETAIL_ROW.DETAIL_ROW_REG.forEach(reg => reg.CURRENT = false);
+  } else {
+    existing.DETAIL_ROW.DETAIL_ROW_REG = [];
+  }
+  existing.DETAIL_ROW.DETAIL_ROW_REG.push({
+    CURRENT: true,
+    REGDATE: now,
+    REGTIME: now,
+    REGUSER: reguser
+  });
 
-      // Actualizar el registro de la actualización
-      const now = new Date();
-      const reguser = req.req.user?.USERNAME || 'SYSTEM';
-
-      // Marcar registros anteriores como no actuales
-      if (Array.isArray(existing.DETAIL_ROW.DETAIL_ROW_REG)) {
-        existing.DETAIL_ROW.DETAIL_ROW_REG.forEach(reg => {
-          reg.CURRENT = false;
-        });
-      } else {
-        existing.DETAIL_ROW.DETAIL_ROW_REG = [];
-      }
-
-      // Agregar nuevo registro
-      existing.DETAIL_ROW.DETAIL_ROW_REG.push({
-        CURRENT: true,
-        REGDATE: now,
-        REGTIME: now,
-        REGUSER: reguser
-      });
-
-      // Guardar con validaciones y middleware
-      const updated = await existing.save();
-      result = updated.toObject();
-
-    } else {
+  // Si cambió el ROLEID, crea nuevo y elimina el anterior
+  if (camposActualizar.ROLEID && camposActualizar.ROLEID !== roleid) {
+    // Copia los datos, cambia el ROLEID y elimina el _id para que Mongo cree uno nuevo
+    const nuevo = existing.toObject();
+    nuevo.ROLEID = camposActualizar.ROLEID;
+    delete nuevo._id;
+    const nuevoDoc = await RoleSchema.create(nuevo);
+    await RoleSchema.deleteOne({ ROLEID: roleid });
+    result = nuevoDoc.toObject();
+  } else {
+    // Solo guardar cambios
+    const updated = await existing.save();
+    result = updated.toObject();
+  }
+}
+    else {
       console.log('No coincide ningún procedimiento');
       throw new Error('Parámetros inválidos o incompletos');
     }
